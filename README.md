@@ -20,9 +20,8 @@
     ```npm install uglify-js -g```
 
     2> 下载 [Google Closure Compiler](https://github.com/google/closure-compiler)
-    确保本机已安装 [java7+](http://www.java.com/zh_CN/download/manual.jsp)
-    [点此下载最新版](http://dl.google.com/closure-compiler/compiler-latest.zip)，若无法访问Google [点此百度盘下载](http://pan.baidu.com/s/1qW1I1as)
-    解压至任意文件夹，然后在 build.data.js 配置文件指定compiler.jar的路径
+    确保本机已安装 [java7+](http://www.java.com/zh_CN/download/manual.jsp)，
+    [点此下载最新版](http://dl.google.com/closure-compiler/compiler-latest.zip)，若无法访问Google， [点此百度盘下载](http://pan.baidu.com/s/1qW1I1as)。解压至任意文件夹，然后在 build.data.js 配置文件指定 compiler.jar 的路径
 3. 在命令行下执行（Windows 可直接运行 build.bat ），注意build文件夹路径
 
     ```node build/build.js```
