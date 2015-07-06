@@ -14,13 +14,18 @@
 ###运行环境：
 1. 下载 [Node.js](https://nodejs.org/download/) 并安装
 2. 下载或安装js压缩工具，任选其一
+
     1> 安装uglify，在命令行下执行以下命令
+
     ```npm install uglify-js -g```
 
     2> 下载 [Google Closure Compiler](https://github.com/google/closure-compiler)
     确保本机已安装 [java7+](http://www.java.com/zh_CN/download/manual.jsp)
     [点此下载最新版](http://dl.google.com/closure-compiler/compiler-latest.zip)，若无法访问Google [点此百度盘下载](http://pan.baidu.com/s/1qW1I1as)
     解压至任意文件夹，然后在 build.data.js 配置文件指定compiler.jar的路径
+3. 在命令行下执行（Windows 可直接运行 build.bat ），注意build文件夹路径
+
+    ```node build/build.js```
 
 ###任务说明：
 每个任务即一个过程，都有对应的模块处理。模块参数完全自定义，传入的参数以模块需要为主。每个任务模块可以有多个文本处理模块，参数也是高度自定义。任务模块和文本处理模块均需先注册，文本处理模块可注册到全局，默认对所有任务（任务模块里调用了文本处理模块）生效，也可注册到单独的任务模块，则仅对该任务生效。每个任务都可以配置要运行的文本处理模块以及执行的顺序。
