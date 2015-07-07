@@ -67,7 +67,7 @@ module.exports = {
             //给不同文件追加不同文本,不适用有同名文件的情况
             {
                 //其它文件追加的文本
-                "def": "%//f.fullname%",
+                "def": "//%f.fullname%",
                 //ab.js追加的文本
                 "ab.js": "//a.js+b.js\n"
             }
