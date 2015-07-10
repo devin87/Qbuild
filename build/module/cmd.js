@@ -2,7 +2,7 @@
 /*
 * cmd.js js压缩模块
 * author:devin87@qq.com
-* update:2015/07/02 13:51
+* update:2015/07/10 16:23
 */
 var shell = Qbuild.shell,
 
@@ -15,7 +15,7 @@ var shell = Qbuild.shell,
 module.exports = {
     type: ["cmd", "cmd0", "cmd1"],
 
-    exec: function (f, data, callback) {
+    exec: function (f, task, callback) {
         if (f.skip) {
             log("跳过：" + f.relname);
             return Q.fire(callback);
@@ -31,7 +31,7 @@ module.exports = {
         mkdir(path.dirname(f.dest));
 
         //执行命令行调用
-        shell(parseText(data.cmd, f), function (has_error) {
+        shell(parseText(task.cmd, f), function (has_error) {
             if (has_error) return;
 
             var stat = f.stat,
@@ -44,7 +44,7 @@ module.exports = {
                 fs.readFile(f.dest, function (err, text) {
                     f.text = text + "";
 
-                    Qbuild.runTextModules(f, data);
+                    Qbuild.runTextModules(f, task);
                     Qbuild.saveFile(f, callback);
                 });
             } else {

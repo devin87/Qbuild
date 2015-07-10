@@ -2,7 +2,7 @@
 /*
 * 文件合并、压缩、格式化工具
 * author:devin87@qq.com
-* update:2015/07/03 10:00
+* update:2015/07/10 17:41
 */
 (function () {
     "use strict";
@@ -34,8 +34,8 @@
     var ROOT = process.cwd(),
         ROOT_EXEC = __dirname,
 
-        PATH_CONFIG = path.join(ROOT, "build.data.js"),
-        PATH_STORE = path.join(ROOT, "store.json"),
+        PATH_CONFIG = join_path(ROOT, process.argv[2] || "build.data.js"),
+        PATH_STORE = path.join(path.dirname(PATH_CONFIG), process.argv[3] || "build.store.json"),
 
         map_module = {},
         map_text_module = {},
@@ -243,21 +243,25 @@
                             relname = get_relname(fullname);
                             dest = join_path(output, relname);
 
+                            //文件对象
                             f = {
-                                dir: dir,
-                                destname: dest,
-                                dest: dest,
-                                fullname: fullname,
-                                relname: relname,
-                                filename: filename,
-                                name: get_name_without_ext(filename),
-                                ext: path.extname(filename),
-                                stat: stat
+                                dir: dir,            //文件所在目录
+                                destname: dest,      //默认文件保存路径
+                                dest: dest,          //文件实际保存路径
+                                fullname: fullname,  //文件完整路径
+                                relname: relname,    //相对于 config.dir 的路径
+                                filename: filename,                   //文件名(带扩展名)
+                                name: get_name_without_ext(filename), //文件名(不带扩展名)
+                                ext: path.extname(filename),          //文件扩展名
+                                stat: stat          //文件状态(最后访问时间、修改时间、文件大小等) {atime,mtime,size}
                             };
 
                             if (rename) {
+                                //新文件名称(带扩展名)
                                 f.rename = parse_text(rename, f);
+                                //文件上次构建时的保存路径
                                 f.last_dest = (map_last_dest[dest.toLowerCase()] || {}).dest;
+                                //文件实际保存路径
                                 f.dest = path.join(path.dirname(dest), f.rename);
                             }
 
@@ -530,12 +534,12 @@
     }
 
     //初始化当前任务文本处理模块
-    function init_text_modules(data) {
-        var list_run = data.runText;
+    function init_text_modules(task) {
+        var list_run = task.runText;
         if (list_run) list_run = makeArray(list_run);
         else {
             list_run = config.runText;
-            if (data._map_text) list_run = list_run.concat(Object.keys(data._map_text));
+            if (task._map_text) list_run = list_run.concat(Object.keys(task._map_text));
         }
 
         var list = [],
@@ -548,7 +552,7 @@
         };
 
         Object.forEach(map_text_module, fn);
-        if (data._map_text) Object.forEach(data._map_text, fn);
+        if (task._map_text) Object.forEach(task._map_text, fn);
 
         list_run.forEach(function (type) {
             if (type != "*") {
@@ -561,22 +565,22 @@
             }
         });
 
-        data._list_text = list;
-        data.runText = tmp;
+        task._list_text = list;
+        task.runText = tmp;
     }
 
     //触发文本处理模块动作
-    function fire_text_modules(action, data) {
-        data._list_text.forEach(function (m) {
+    function fire_text_modules(action, task) {
+        task._list_text.forEach(function (m) {
             var module = m.module;
-            fire(module[action], module, data[m.type], data, m.type);
+            fire(module[action], module, task[m.type], task, m.type);
         });
     }
 
     //运行文本处理模块
-    function run_text_modules(f, data) {
-        var map = data._map_text,
-            list_run = data.runText,
+    function run_text_modules(f, task) {
+        var map = task._map_text,
+            list_run = task.runText,
             len = list_run.length,
             i = 0;
 
@@ -587,53 +591,53 @@
             if (!module) continue;
 
             //if (f.src && f[type]) fire(module.process, module, f, f[type], data, type);
-            if (fire(module.process, module, f, data[type], data, type) === false) break;
+            if (fire(module.process, module, f, task[type], task, type) === false) break;
         }
     }
 
     //----------------------- process -----------------------
 
     //处理任务
-    function process_task(ops, callback) {
+    function process_task(task, callback) {
         var module;
-        if (!ops || ops.enable === false || !(module = map_module[ops.type])) return fire(callback);
+        if (!task || task.enable === false || !(module = map_module[task.type])) return fire(callback);
 
-        ops.dir = makeArray(ops.dir || "").map(function (dir) {
+        task.dir = makeArray(task.dir || "").map(function (dir) {
             return join_path(config.dir, dir);
         });
-        ops.output = join_path(config.output, ops.output);
-        ops.autoSkip = def(ops.autoSkip, config.autoSkip) !== false;
-        ops.skipOutput = def(ops.skipOutput, config.skipOutput) !== false;
-        ops.preload = !!def(ops.preload, config.preload);
+        task.output = join_path(config.output, task.output);
+        task.autoSkip = def(task.autoSkip, config.autoSkip) !== false;
+        task.skipOutput = def(task.skipOutput, config.skipOutput) !== false;
+        task.preload = !!def(task.preload, config.preload);
 
-        var rename = ops.rename;
-        if (rename !== false) ops.rename = typeof rename == "string" ? rename : config.rename;
+        var rename = task.rename;
+        if (rename !== false) task.rename = typeof rename == "string" ? rename : config.rename;
 
-        load_text_modules(ops.registerText, ops);
+        load_text_modules(task.registerText, task);
 
-        init_text_modules(ops);
+        init_text_modules(task);
 
-        fire(module.init, module, ops);
-        fire_text_modules("init", ops);
+        fire(module.init, module, task);
+        fire_text_modules("init", task);
 
         log();
-        log("-------------------- " + (ops.title || ops.type || "") + " --------------------");
+        log("-------------------- " + (task.title || task.type || "") + " --------------------");
         if (module.dirInfo !== false) {
-            log("扫描目录：" + ops.dir.join("\n" + " ".repeat(10)));
-            log("输出目录：" + ops.output);
+            log("扫描目录：" + task.dir.join("\n" + " ".repeat(10)));
+            log("输出目录：" + task.output);
         }
         log();
 
         var process = module.process,
 
-            list_check = ops._check,
-            is_auto_skip = ops.autoSkip,
+            list_check = task._check,
+            is_auto_skip = task.autoSkip,
             is_check_after_read = isArray(list_check) && list_check.length > 0;
 
         //检测是否跳过文件
         var check_skip = function (f) {
             f.skip = f.skip && !list_check.some(function (check) {
-                return check(f, ops) === true;
+                return check(f, task) === true;
             });
         };
 
@@ -661,18 +665,18 @@
         };
 
         //match模式
-        if (ops.match) {
-            var list_file = get_matched_files(ops),
+        if (task.match) {
+            var list_file = get_matched_files(task),
                 length = list_file.length;
 
-            ops.files = list_file;
+            task.files = list_file;
 
             log("匹配文件：" + length);
             log();
 
             if (length <= 0) return fire(callback);
 
-            fire(module.before, module, ops);
+            fire(module.before, module, task);
 
             list_file.forEach(function (f) {
                 var dest = (map_last_dest[f.destname.toLowerCase()] || {}).dest || f.dest, old_stat;
@@ -685,12 +689,12 @@
 
                 //文件内容预加载
                 preload_text(f, function () {
-                    fire(module.check, module, f, ops);
+                    fire(module.check, module, f, task);
                 });
             });
-        } else if (ops.list) {
+        } else if (task.list) {
             //list模式(for文件合并)
-            var list = ops.list, dir = ops.dir[0], output = ops.output;
+            var list = task.list, dir = task.dir[0], output = task.output;
 
             if (isObject(list)) {
                 var tmp = [];
@@ -702,7 +706,7 @@
 
             if (list.length <= 0) return fire(callback);
 
-            ops.list = list.map(function (f) {
+            task.list = list.map(function (f) {
                 var _dir, _dest, _src;
 
                 f.dir = _dir = join_path(dir, f.dir);
@@ -713,31 +717,31 @@
                 f.src = _src = f.src.map(function (filename) {
                     return join_path(_dir, filename);
                 });
-                f.join = f.join || ops.join;
+                f.join = f.join || task.join;
 
                 f.skip = is_auto_skip && !has_update(_src, _dest);
 
-                fire(module.check, module, f, ops);
+                fire(module.check, module, f, task);
 
                 return f;
             });
         }
 
         //转交给 module.process 处理
-        if (process) return fire(process, module, ops, callback);
+        if (process) return fire(process, module, task, callback);
 
         //针对单一的文件或任务处理
         var module_exec = module.exec;
 
         if (isFunc(module_exec)) {
             var queue = new Queue({
-                tasks: ops.files || ops.list,
+                tasks: task.files || task.list,
                 //注入参数索引(exec回调函数所在位置)
                 injectIndex: 1,
 
                 exec: function (f, ok) {
                     after_check(f, function () {
-                        fire(module_exec, module, f, ops, ok);
+                        fire(module_exec, module, f, task, ok);
                     });
                 },
                 complete: function () {
@@ -745,12 +749,12 @@
                     log("处理完毕！", GREEN);
                     log();
 
-                    fire(module.after, module, ops);
+                    fire(module.after, module, task);
                     fire(callback);
                 }
             });
 
-            ops.queue = queue;
+            task.queue = queue;
         } else {
             log();
             fire(callback);
@@ -805,10 +809,10 @@
             var ts = config[type];
             if (!ts) return;
 
-            makeArray(ts).forEach(function (ops) {
-                if (!ops.type) ops.type = type;
+            makeArray(ts).forEach(function (task) {
+                if (!task.type) task.type = type;
 
-                queue.add(ops);
+                queue.add(task);
             });
         });
 
@@ -918,9 +922,9 @@
         runTextModules: run_text_modules,
 
         //设置检测函数,检查文件是否需要更新
-        setCheck: function (data, check) {
-            if (!data._check) data._check = [];
-            data._check.push(check);
+        setCheck: function (task, check) {
+            if (!task._check) task._check = [];
+            task._check.push(check);
         },
 
         //自定义存储操作

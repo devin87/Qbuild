@@ -2,7 +2,7 @@
 /*
 * document.write.js 文本模块: document.write 输出支持
 * author:devin87@qq.com
-* update:2015/07/02 16:25
+* update:2015/07/10 16:25
 */
 var global = Q.G,
 
@@ -48,7 +48,7 @@ global.document = document;
 module.exports = {
     type: "include",
 
-    init: function (data, ops) {
+    init: function (data, task) {
         list_include = [];
         map_include = {};
         fullname = "";
@@ -63,11 +63,11 @@ module.exports = {
 
         store.set(KEY_STORE, map_mtime);
 
-        ops.preload = true;
+        task.preload = true;
 
         //检查文件是否需要更新,如果引用的js文件发生了改变,则更新文件
         if (has_changed) {
-            Qbuild.setCheck(ops, function (f) {
+            Qbuild.setCheck(task, function (f) {
                 if (!f.text) return;
 
                 RE_TAG_SCRIPT.lastIndex = 0;
@@ -84,7 +84,7 @@ module.exports = {
         }
     },
 
-    process: function (f, data, ops) {
+    process: function (f, data, task) {
         if (!f.text) return;
 
         var dir = path.dirname(f.fullname);

@@ -4,17 +4,35 @@ module.exports = {
     //绝对路径优先;若以./开头则基于配置文件路径(下同)
     root: "../",
     //输入目录,以下所有dir目录均基于此目录(若以/开头则直接基于根目录)
-    dir: "",
+    dir: "demo",
     //输出目录,同上
-    output: "release",
+    output: "release2",
 
     //是否自动跳过未更新的文件
+    //若任务对象有同名属性,则以任务对象的值为主 eg: dir、output、skipOutput、autoSkip、enable、preload、rename、registerText、runText
     autoSkip: true,
 
     rename: "%f.name%.%date('yyyyMMddHHmm')%%f.ext%",
     cleanRename: true,
 
-    //默认执行的文本处理模块(按顺序执行)
+    //文件重命名
+    rename: "%f.name%.%date('yyyyMMddHHmm')%%f.ext%",
+
+    //注册任务处理模块,基于根目录,默认导入./module/*.js
+    /*register: {
+        concat: "./module/concat.js",
+        format: "./module/format.js",
+        cmd: "./module/cmd.js",
+
+        //若处理程序相同,可重用已注册的模块 eg: copy:"format"
+        copy: "./module/copy.js"
+    },*/
+
+    //注册文本处理模块,基于根目录,默认导入./module/text/*.js
+    //registerText: {},
+    //registerText: "./module/text/*.js",
+
+    //默认执行的文本处理模块(按顺序执行),*表示其它模块
     runText: ["replace", "before", "after", "*"],
 
     //任务:文件合并
@@ -22,7 +40,7 @@ module.exports = {
         title: "文件合并",
 
         dir: "js/src",
-        output: "/js",
+        output: "/demo/js",
 
         list: [
             {
@@ -32,7 +50,7 @@ module.exports = {
             },
             {
                 dir: "b",
-                src: ["t1.js", "t2.js", "D:/t.js"],
+                src: ["t1.js", "t2.js"],
                 dest: "src/b.js"
             },
             {
@@ -141,7 +159,7 @@ module.exports = {
             cmd: "uglifyjs %f.fullname% -o %f.dest% -c -m",
 
             match: "**.js",
-            exclude: "data/**.js",
+            exclude: "(data/**|error).js",
 
             replace: [
                 //去掉文件头部压缩工具可能保留的注释
@@ -163,16 +181,14 @@ module.exports = {
     copy: [
         {
             title: "同步js数据",
-            dir: "js/data",
-            match: "**.js"
+            match: "js/data/**.js"
         },
         {
             title: "同步图片",
-            dir: "images",
-            match: "**"
+            match: "images/**"
         }
     ],
 
-    //要启动的任务
+    //要启动的任务,按顺序执行,不支持*
     run: ["concat", "cmd", "format0", "format", "copy"]
 };

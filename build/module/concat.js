@@ -2,12 +2,13 @@
 /*
 * concat.js 文件合并模块
 * author:devin87@qq.com
-* update:2015/07/02 13:51
+* update:2015/07/10 16:43
 */
 var fs = require("fs"),
     colors = require("../lib/colors.js"),
     log = Qbuild.log,
     error = Qbuild.error,
+    parseText = Qbuild.parseText,
 
     STR_SPACE = ' '.repeat(4);
 
@@ -23,7 +24,7 @@ module.exports = {
 
     dirInfo: false,
 
-    exec: function (f, data, callback) {
+    exec: function (f, task, callback) {
         var tmp = [],
             dir = f.dir,
             is_skip = f.skip;
@@ -62,8 +63,9 @@ module.exports = {
                 log(STR_SPACE + "合并：" + f.dest, Qbuild.HOT);
 
                 f.text = tmp.join(f.join || '\n\n');
+                if (f.prefix) f.text = parseText(f.prefix, f) + f.text;
 
-                Qbuild.runTextModules(f, data);
+                Qbuild.runTextModules(f, task);
                 Qbuild.saveFile(f, next_task);
             }
         });

@@ -2,7 +2,7 @@
 /*
 * rename.js 文本模块: 更新重命名文件引用
 * author:devin87@qq.com
-* update:2015/07/06 11:12
+* update:2015/07/10 16:25
 */
 var global = Q.G,
     def = Q.def,
@@ -19,7 +19,7 @@ var global = Q.G,
 module.exports = {
     type: "rename_link",
 
-    init: function (data, ops) {
+    init: function (data, task) {
         //允许外部配置匹配规则
         if (data) {
             var match = data.match, index = data.index;
@@ -51,11 +51,11 @@ module.exports = {
         has_changed = Object.hasItem(map_dest);
         map_all = extend(map_dest, map_last_dest);
 
-        ops.preload = true;
+        task.preload = true;
 
         //检查文件是否需要更新,如果引用的文件发生了改变,则更新文件
         if (has_changed) {
-            Qbuild.setCheck(ops, function (f) {
+            Qbuild.setCheck(task, function (f) {
                 if (!f.text) return;
 
                 regex_match.lastIndex = 0;
@@ -72,7 +72,7 @@ module.exports = {
         }
     },
 
-    process: function (f, data, ops) {
+    process: function (f, data, task) {
         if (!f.text) return;
 
         var dir = path.dirname(f.fullname), output = path.dirname(f.dest);

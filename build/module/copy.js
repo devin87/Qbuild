@@ -2,7 +2,7 @@
 /*
 * copy.js 文件同步模块
 * author:devin87@qq.com
-* update:2015/07/02 13:52
+* update:2015/07/10 16:23
 */
 var log = Qbuild.log,
     print = Qbuild.print,
@@ -13,12 +13,12 @@ var log = Qbuild.log,
 module.exports = {
     type: ["copy", "copy0", "copy1"],
 
-    init: function (data) {
+    init: function (task) {
         //不预加载文件内容,不重命名文件
-        data.preload = data.rename = false;
+        task.preload = task.rename = false;
     },
 
-    exec: function (f, data, callback) {
+    exec: function (f, task, callback) {
         if (f.skip) {
             log("跳过：" + f.relname);
             return Q.fire(callback);

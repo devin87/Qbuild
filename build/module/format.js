@@ -2,7 +2,7 @@
 /*
 * format.js 文件格式化模块
 * author:devin87@qq.com
-* update:2015/07/02 13:51
+* update:2015/07/10 16:23
 */
 var log = Qbuild.log,
     print = Qbuild.print;
@@ -10,7 +10,7 @@ var log = Qbuild.log,
 module.exports = {
     type: ["format", "format0", "format1"],
 
-    exec: function (f, data, callback) {
+    exec: function (f, task, callback) {
         if (f.skip) {
             log("跳过：" + f.relname);
             return Q.fire(callback);
@@ -23,7 +23,7 @@ module.exports = {
         print("\n");
 
         Qbuild.readFile(f, function () {
-            Qbuild.runTextModules(f, data);
+            Qbuild.runTextModules(f, task);
             Qbuild.saveFile(f, callback);
         });
     }

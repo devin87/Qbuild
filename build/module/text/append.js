@@ -2,7 +2,7 @@
 /*
 * append.js 文本模块:追加文本
 * author:devin87@qq.com
-* update:2015/07/06 17:16
+* update:2015/07/10 16:23
 */
 var isObject = Q.isObject,
 
@@ -12,7 +12,7 @@ var isObject = Q.isObject,
 module.exports = {
     type: ["before", "after"],
 
-    process: function (f, data, ops, type) {
+    process: function (f, data, task, type) {
         if (!data) return;
 
         var text = f.text || "",
