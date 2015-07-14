@@ -12,11 +12,10 @@ module.exports = {
     //若任务对象有同名属性,则以任务对象的值为主 eg: dir、output、skipOutput、autoSkip、enable、preload、rename、registerText、runText
     autoSkip: true,
 
-    rename: "%f.name%.%date('yyyyMMddHHmm')%%f.ext%",
-    cleanRename: true,
-
     //文件重命名
     rename: "%f.name%.%date('yyyyMMddHHmm')%%f.ext%",
+    //清理上次生成的文件
+    cleanDest: true,
 
     //注册任务处理模块,基于根目录,默认导入./module/*.js
     /*register: {
@@ -40,7 +39,7 @@ module.exports = {
         title: "文件合并",
 
         dir: "js/src",
-        output: "/demo/js",
+        output: "js-concat",
 
         list: [
             {
@@ -54,6 +53,8 @@ module.exports = {
                 dest: "src/b.js"
             },
             {
+                //不从父级继承，以/开头直接基于root定义的目录
+                dir: "/release2/js-concat/src",
                 src: ["a.js", "b.js"],
                 dest: "ab.js"
             }
@@ -92,18 +93,18 @@ module.exports = {
         //注册单独的文本处理模块,|开头表示程序所在目录
         registerText: {
             include: "|./module/text/custom/document.write.js",
-            rename_link: "|./module/text/custom/rename_link.js"
+            update_link: "|./module/text/custom/update_link.js"
         },
 
         include: "/**(head|bottom).js",
 
         //可配置重命名更新匹配规则
-        //rename_link: {
+        //update_link: {
         //    match: /<(script|link|img)[^>]+?(src|href)=(['"])([^>]+?)\3[^>]*>/ig,
         //    index: 4
         //},
 
-        runText: ["replace", "before", "after", "include", "rename_link"],
+        runText: ["replace", "before", "after", "include", "update_link"],
 
         //要扫描的目录,可为数组,默认只扫描当前目录下的文件,若要扫描子孙目录,请使用*或**
         //扫描根目录下所有子目录 eg:/*
@@ -123,7 +124,7 @@ module.exports = {
             //移除html注释
             [/(<!--(?!\[if\s)([^~]|~)*?-->)/gi, ""],
             //移除空script标签
-            [/\s*<script(\s+type="[^"]+")?>\s*?<\/script>/gi,""],
+            [/\s*<script(\s+type="[^"]+")?>\s*?<\/script>/gi, ""],
             //移除无效的空格或换行
             [/(<div[^>]*>)[\s\r\n]+(<\/div>)/gi, "$1$2"],
             //移除多余的换行

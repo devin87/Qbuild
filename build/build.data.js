@@ -14,20 +14,22 @@ module.exports = {
 
     //文件重命名
     //rename: "%f.name%.%date('yyyyMMddHHmm')%%f.ext%",
+    //清理上次生成的文件
+    //cleanDest: true,
 
-    //注册任务处理模块,基于根目录
-    register: {
+    //注册任务处理模块,基于根目录,默认导入./module/*.js
+    /*register: {
         concat: "./module/concat.js",
         format: "./module/format.js",
         cmd: "./module/cmd.js",
 
         //若处理程序相同,可重用已注册的模块 eg: copy:"format"
         copy: "./module/copy.js"
-    },
+    },*/
 
-    //注册文本处理模块,基于根目录
+    //注册文本处理模块,基于根目录,默认导入./module/text/*.js
     //registerText: {},
-    registerText: "./module/text/*.js",
+    //registerText: "./module/text/*.js",
 
     //默认执行的文本处理模块(按顺序执行),*表示其它模块
     runText: ["replace", "before", "after", "*"],
@@ -40,7 +42,7 @@ module.exports = {
         //runText: ["replace", "before", "after", "*"],
 
         dir: "js/src",
-        output: "/demo/js",
+        output: "js-concat",
 
         //可以简写为 {"src/a.js":["a/t1.js", "a/t2.js", "a/t3.js"]}
         list: [
@@ -55,6 +57,8 @@ module.exports = {
                 dest: "src/b.js"
             },
             {
+                //不从父级继承，以/开头直接基于root定义的目录
+                dir: "/release/js-concat/src",
                 src: ["a.js", "b.js"],
                 dest: "ab.js"
             }
@@ -127,7 +131,7 @@ module.exports = {
                 //移除多余的换行
                 [/(\r?\n)(\r?\n)+/g, "$1"],
                 //移除首尾空格
-                [/^\s+|\s+$/,""]
+                [/^\s+|\s+$/, ""]
             ]
         },
         {
@@ -158,7 +162,7 @@ module.exports = {
             cmd: "uglifyjs %f.fullname% -o %f.dest% -c -m",
 
             match: "**.js",
-            exclude: "data/**.js",
+            exclude: "data/**.js|error.js",
 
             replace: [
                 //去掉文件头部压缩工具可能保留的注释

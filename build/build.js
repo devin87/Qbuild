@@ -332,7 +332,7 @@
     function save_file(f, callback, data) {
         if (config.noSave) return fire(callback);
 
-        if (config.cleanRename) {
+        if (config.cleanDest) {
             var last_dest = f.last_dest;
             if (last_dest && fs.existsSync(last_dest)) fs.unlinkSync(last_dest);
         }
@@ -717,7 +717,7 @@
                 f.src = _src = f.src.map(function (filename) {
                     return join_path(_dir, filename);
                 });
-                f.join = f.join || task.join;
+                //f.join = f.join || task.join;
 
                 f.skip = is_auto_skip && !has_update(_src, _dest);
 

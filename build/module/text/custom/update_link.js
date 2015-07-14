@@ -1,8 +1,8 @@
 ﻿/// <reference path="../../../build.js" />
 /*
-* rename.js 文本模块: 更新重命名文件引用
+* update_link.js 文本模块: 更新文件引用
 * author:devin87@qq.com
-* update:2015/07/10 16:25
+* update:2015/07/14 16:40
 */
 var global = Q.G,
     def = Q.def,
@@ -17,7 +17,7 @@ var global = Q.G,
     map_all = {};
 
 module.exports = {
-    type: "rename_link",
+    type: "update_link",
 
     init: function (data, task) {
         //允许外部配置匹配规则

@@ -1,9 +1,11 @@
 ﻿module.exports = {
+    root: "../",
+
     concat: {
         title: "文件合并",
 
-        dir: "../demo/js/src",
-        output: "../release/js-concat",
+        dir: "demo/js/src",
+        output: "release/js-concat",
 
         list: [
             {
@@ -18,6 +20,7 @@
                 dest: "b.js"
             },
             {
+                //不从父级继承，以/开头直接基于root定义的目录
                 dir: "/release/js-concat",
                 src: ["a.js", "b.js"],
                 dest: "ab.js"

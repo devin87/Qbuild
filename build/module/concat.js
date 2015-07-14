@@ -2,7 +2,7 @@
 /*
 * concat.js 文件合并模块
 * author:devin87@qq.com
-* update:2015/07/10 16:43
+* update:2015/07/14 17:16
 */
 var fs = require("fs"),
     colors = require("../lib/colors.js"),
@@ -62,7 +62,7 @@ module.exports = {
 
                 log(STR_SPACE + "合并：" + f.dest, Qbuild.HOT);
 
-                f.text = tmp.join(f.join || '\n\n');
+                f.text = tmp.join(f.join || task.join || '\n\n');
                 if (f.prefix) f.text = parseText(f.prefix, f) + f.text;
 
                 Qbuild.runTextModules(f, task);
