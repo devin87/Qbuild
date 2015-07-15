@@ -27,6 +27,7 @@
     ```node build/build.js```
     
     可以手动指定配置文件和自定义存储文件（均为可选）
+    
     ```node build/build.js build.data.js build.store.js```
 
 ###使用教程
