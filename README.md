@@ -1,5 +1,5 @@
-# build.js
-简单高效的项目构建工具，基于Node.js，支持js压缩、文件合并、格式化、复制和重命名。
+# Qbuild
+简单高效的项目构建工具，基于Node.js，支持js压缩、文件合并、格式化、复制和重命名等。
 
 ###特点：
 <ul>
@@ -25,76 +25,13 @@
 3. 在命令行下执行（Windows 可直接运行 build.bat ），注意build文件夹路径
 
     ```node build/build.js```
-
-###任务说明：
-每个任务即一个过程，都有对应的模块处理。模块参数完全自定义，传入的参数以模块需要为主。每个任务模块可以有多个文本处理模块，参数也是高度自定义。任务模块和文本处理模块均需先注册，文本处理模块可注册到全局，默认对所有任务（任务模块里调用了文本处理模块）生效，也可注册到单独的任务模块，则仅对该任务生效。每个任务都可以配置要运行的文本处理模块以及执行的顺序。
-
-一般来讲，仅需配置匹配的文件规则即可，其它参数依模块需要传递即可。
-
-```一个简单的模块 eg: format.js```
-```javascript
-module.exports = {
-    //模块类型(模块名)，也是参数名，可为字符串或数组
-    type: ["format", "format0", "format1"],
     
-    //针对单个文件的处理函数
-    //若想直接处理所有文件，可将 exec 改为 process (data, callback)
-    //data: 任务对象(传入的参数)
-    exec: function (f, data, callback) {
-        if (f.skip) {
-            Qbuild.log("跳过：" + f.relname);
-            return Q.fire(callback);
-        }
+    可以手动指定配置文件和自定义存储文件（均为可选）
+    ```node build/build.js build.data.js build.store.js```
 
-        Qbuild.log("处理：" + f.relname, Qbuild.HOT);
+###使用教程
+[使用Qbuild进行文件合并、压缩、格式化等处理](http://www.cnblogs.com/devin87/p/Qbuild-doc.html)
 
-        Qbuild.readFile(f, function () {
-            Qbuild.runTextModules(f, data);
-            Qbuild.saveFile(f, callback);
-        });
-    }
-};
-```
-
-###注册模块：
-1. 批量注册，支持通配符（\*和**）和正则表达式
-```javascript
-module.exports = {
-    //注册任务模块
-    register: "./module/*.js",
-
-    //单个任务对象或任务对象数组
-    concat:{},
-    format:[{},{}],
-
-    //注册文本处理模块(同任务模块)
-    registerText: "./module/text/*.js",
-
-    //要运行的模块，模块名称可在js文件中定义
-    run:["concat", "format", "cmd", "copy"]
-};
-```
-
-2. 单独注册
-```javascript
-module.exports = {
-    //模块名与任务模块一一对应，此时将忽略js模块中的定义(type)
-    register: {
-        concat: "./module/concat.js",  //文件合并
-        format: "./module/format.js",  //文件格式化
-        cmd: "./module/cmd.js",        //调用命令行执行js压缩
-        copy: "./module/copy.js",      //文件复制
-
-        //重用已注册的模块，使用同样的处理程序
-        format2:"format"
-    },
-
-    registerText: {},
-
-    //传递给 format.js 模块的参数
-    format2:{}
-};
-```
 
 ###配置文件(build.data.js)：
 ```javascript
