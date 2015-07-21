@@ -38,7 +38,7 @@
 ```javascript
 module.exports = {
     //根目录,默认为配置文件所在路径,所有目录均基于此目录
-    //绝对路径优先;若以|开头则基于构建程序所在目录,以./开头则基于配置文件路径(下同)
+    //绝对路径优先;若以./开头则基于配置文件路径(下同)
     root: "../",
     //输入目录,以下所有dir目录均基于此目录(若以/开头则直接基于根目录)
     dir: "demo",
@@ -49,22 +49,27 @@ module.exports = {
     //若任务对象有同名属性,则以任务对象的值为主 eg: dir、output、skipOutput、autoSkip、enable、preload、rename、registerText、runText
     autoSkip: true,
 
+    //不保存自定义存储数据
+    //noStore: false,
+
     //文件重命名
     //rename: "%f.name%.%date('yyyyMMddHHmm')%%f.ext%",
+    //清理上次生成的文件
+    //cleanDest: true,
 
-    //注册任务处理模块,基于根目录
-    register: {
+    //注册任务处理模块,基于根目录,默认导入./module/*.js
+    /*register: {
         concat: "./module/concat.js",
         format: "./module/format.js",
         cmd: "./module/cmd.js",
 
         //若处理程序相同,可重用已注册的模块 eg: copy:"format"
         copy: "./module/copy.js"
-    },
+    },*/
 
-    //注册文本处理模块,基于根目录
+    //注册文本处理模块,基于根目录,默认导入./module/text/*.js
     //registerText: {},
-    registerText: "./module/text/*.js",
+    //registerText: "./module/text/*.js",
 
     //默认执行的文本处理模块(按顺序执行),*表示其它模块
     runText: ["replace", "before", "after", "*"],
@@ -77,7 +82,7 @@ module.exports = {
         //runText: ["replace", "before", "after", "*"],
 
         dir: "js/src",
-        output: "/demo/js",
+        output: "js-concat",
 
         //可以简写为 {"src/a.js":["a/t1.js", "a/t2.js", "a/t3.js"]}
         list: [
@@ -92,6 +97,8 @@ module.exports = {
                 dest: "src/b.js"
             },
             {
+                //不从父级继承，以/开头直接基于root定义的目录
+                dir: "/release/js-concat/src",
                 src: ["a.js", "b.js"],
                 dest: "ab.js"
             }
@@ -104,7 +111,7 @@ module.exports = {
             //给不同文件追加不同文本,不适用有同名文件的情况
             {
                 //其它文件追加的文本
-                "def": "%//f.fullname%",
+                "def": "//%f.fullname%\n",
                 //ab.js追加的文本
                 "ab.js": "//a.js+b.js\n"
             }
@@ -142,19 +149,20 @@ module.exports = {
             //传给 document.write.js 的参数
             include: "/demo/js/**(head|bottom).js",
 
-            //要扫描的目录,可为数组,默认只扫描当前目录下的文件,若要扫描子孙目录,请使用*或**
-            //扫描根目录下所有子目录 eg:/*
-            //扫描根目录下所有子孙目录(包括子目录的子目录等) eg:/**
-            //dir: ["ab*/*", "m"],
+            //dir: "",
 
             //一般output可省略,将自动保持原始文件夹结构
-            output: "",
+            //output: "",
 
-            //要匹配的文件,支持正则表达式 eg: (*|/demo/**).html
+            //要匹配的文件,可为数组 eg:["about/*.html", "m/*.html"]
             //*可匹配斜杆之外的字符,2个*可匹配所有字符
             match: "**.html",
             //要排除的文件
             exclude: "**.old.html",
+
+            //默认会优化匹配规则以加速扫描 eg:[ab]/*.js => { dir:"[ab]",match:"*.js" }
+            //若想在一些特殊情况下使用正则表达式,可以关闭优化
+            //matchOptimize: true,
 
             replace: [
                 //移除html注释
@@ -164,7 +172,7 @@ module.exports = {
                 //移除多余的换行
                 [/(\r?\n)(\r?\n)+/g, "$1"],
                 //移除首尾空格
-                [/^\s+|\s+$/,""]
+                [/^\s+|\s+$/, ""]
             ]
         },
         {
@@ -190,12 +198,11 @@ module.exports = {
         {
             title: "压缩js",
 
-            dir: ["js", "m/js"],
             //cmd: "java -jar D:\\tools\\compiler.jar --js=%f.fullname% --js_output_file=%f.dest%",
             cmd: "uglifyjs %f.fullname% -o %f.dest% -c -m",
 
-            match: "**.js",
-            exclude: "data/**.js",
+            match: ["js/**.js", "m/js/**.js"],
+            exclude: "js/data/**.js|js/error.js",
 
             replace: [
                 //去掉文件头部压缩工具可能保留的注释
