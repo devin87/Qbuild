@@ -2,7 +2,7 @@
 /*
 * 文件合并、压缩、格式化工具
 * author:devin87@qq.com
-* update:2015/07/21 10:06
+* update:2015/07/21 10:29
 */
 (function () {
     "use strict";
@@ -629,7 +629,7 @@
         //    return join_path(config.dir, dir);
         //});
 
-        task.output = join_path(config.output, task.output || task.dir);
+        task.output = join_path(config.output, def(task.output, task.dir));
         task.dir = join_path(config.dir, task.dir);
         task.autoSkip = def(task.autoSkip, config.autoSkip) !== false;
         task.skipOutput = def(task.skipOutput, config.skipOutput) !== false;
