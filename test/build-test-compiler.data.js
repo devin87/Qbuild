@@ -8,7 +8,7 @@
         cmd: "uglifyjs %f.fullname% -o %f.dest% -c -m",
 
         match: "js/*.js",
-        exclude: "js/error.js",
+        //exclude: "js/error.js",
 
         before: "//build:%NOW%\n"
     }

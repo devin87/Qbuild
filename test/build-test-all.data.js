@@ -106,19 +106,20 @@ module.exports = {
 
         runText: ["replace", "before", "after", "include", "update_link"],
 
-        //要扫描的目录,可为数组,默认只扫描当前目录下的文件,若要扫描子孙目录,请使用*或**
-        //扫描根目录下所有子目录 eg:/*
-        //扫描根目录下所有子孙目录(包括子目录的子目录等) eg:/**
-        //dir: ["ab*/*", "m"],
+        //dir: "",
 
         //一般output可省略,将自动保持原始文件夹结构
         output: "www",
 
-        //要匹配的文件,支持正则表达式 eg: (*|/demo/**).html
+        //要匹配的文件,可为数组 eg:["about/*.html", "m/*.html"]
         //*可匹配斜杆之外的字符,2个*可匹配所有字符
         match: "**.html",
         //要排除的文件
         exclude: "**.old.html",
+
+        //默认会优化匹配规则以加速扫描 eg:[ab]/*.js => { dir:"[ab]",match:"*.js" }
+        //若想在一些特殊情况下使用正则表达式,可以关闭优化
+        //matchOptimize: true,
 
         replace: [
             //移除html注释
@@ -155,12 +156,11 @@ module.exports = {
         {
             title: "压缩js",
 
-            dir: ["js", "m/js"],
             //cmd: "java -jar D:\\tools\\compiler.jar --js=%f.fullname% --js_output_file=%f.dest%",
             cmd: "uglifyjs %f.fullname% -o %f.dest% -c -m",
 
-            match: "**.js",
-            exclude: "(data/**|error).js",
+            match: ["js/**.js", "m/js/**.js"],
+            exclude: "js/data/**.js|js/error.js",
 
             replace: [
                 //去掉文件头部压缩工具可能保留的注释

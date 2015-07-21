@@ -2,7 +2,7 @@
 /*
 * 文件合并、压缩、格式化工具
 * author:devin87@qq.com
-* update:2015/07/10 17:41
+* update:2015/07/21 10:06
 */
 (function () {
     "use strict";
@@ -43,7 +43,7 @@
         map_last_dest = {},
         map_dest = {},
 
-        config,
+        config = {},
         storage = {};
 
     //----------------------- storage -----------------------
@@ -72,6 +72,10 @@
         },
         //保存自定义存储数据
         save: function (callback) {
+            if (config.noStore === true) return;
+
+            mkdir(path.dirname(PATH_STORE));
+
             fs.writeFile(PATH_STORE, JSON.stringify(storage), 'utf-8', callback);
         }
     };
@@ -169,7 +173,7 @@
     function get_path_regex(pattern, isdir) {
         if (!pattern || typeof pattern != "string") return;
 
-        pattern = pattern.replace(/\\(?!d|B|w|W|s|S)/g, "\\\\").replace(/\./g, "\\.").replace(/\*+/g, function (m) {
+        pattern = pattern.replace(/\\+/g, "/").replace(/\\(?!d|B|w|W|s|S)/g, "\\\\").replace(/\./g, "\\.").replace(/\*+/g, function (m) {
             return m == "*" ? "[^\\\\]*" : ".*";
         }).replace(/\//g, "\\\\");
 
@@ -179,109 +183,128 @@
         return new RegExp(pattern, "i");
     }
 
-    //获取匹配的文件 eg:{match:"**.html",exclude:"**.old.html",dir:"demo",output:"release",skipOutput:true}
-    function get_matched_files(ops) {
-        var match = ops.match,
-            exclude = ops.exclude,
-            output = ops.output || "",
-            rename = ops.rename,
-            dir_match = "";
-
-        if (match) {
-            match = normalize_path(match);
-
-            var index = match.lastIndexOf("\\");
-            if (index != -1) {
-                dir_match = match.slice(0, index);
-                match = match.slice(index + 1);
-            }
+    //获取匹配的文件,默认基于config.root
+    //pattern:匹配规则,支持数组 eg:["js/**.js","m/js/**.js"]
+    //ops:可指定扫描目录、输出目录、排除规则、扫描时是否跳过输出目录 eg:{ dir:"demo/",output:"release/",exclude:"**.old.js",skipOutput:true,matchOptimize:true }
+    function get_matched_files(pattern, ops) {
+        if (isObject(pattern)) {
+            ops = pattern;
+        } else {
+            ops = ops || {};
+            ops.match = pattern;
         }
 
-        if (exclude) exclude = normalize_path(exclude);
+        var exclude = ops.exclude,
+            RE_EXCLUDE_FILE = exclude && typeof exclude == "string" ? get_path_regex("^(" + normalize_path(exclude) + ")", false) : exclude,
 
-        var RE_MATCH_FILE = get_path_regex(match),
-            RE_EXCLUDE_FILE = get_path_regex(exclude),
+            task_dir = join_path(config.dir, ops.dir || ""),
+            task_output = join_path(config.output, ops.output || ""),
+            rename = ops.rename,
 
-            has_sub_dir = typeof match == "string" && match.contains("**"),
-            list_dir = [],
+            is_optimize_match = ops.matchOptimize !== false,
+            is_skip_output = ops.skipOutput != false,
 
-            is_skip_output = ops.skipOutput != false;
+            list = [],
+            map = {};
 
-        //获取匹配的文件
-        var get_files = function (dir, all, rs) {
-            var RE_MATCH_DIR, type, index, start = dir.indexOf("*");
+        makeArray(ops.match).forEach(function (match) {
+            if (!match) return;
 
-            if (start != -1) {
-                index = dir.lastIndexOf("\\", start);
-                RE_MATCH_DIR = get_path_regex(dir.slice(index + 1), true);
-                dir = dir.slice(0, index);
-                all = true;
+            //console.log("pattern : " + match);
+
+            var RE_MATCH_FILE, dir = task_dir, all = true;
+
+            if (typeof match == "string") {
+                match = normalize_path(match);
+
+                //优化匹配规则以加速扫描
+                //eg: js/src/(a|b)/*.js => { dir:"js/src",match:"(a|b)/*.js" }
+                //eg: js/src/[ab]/*.js => { dir:"js/src/[ab]",match:"*.js" }
+                if (is_optimize_match) {
+                    var start = match.length,
+                        i1 = match.indexOf("*"),
+                        i2 = match.indexOf("|", 1),
+                        index;
+
+                    if (i1 != -1 && i1 < start) start = i1;
+                    if (i2 != -1 && i2 < start) start = i2;
+
+                    index = match.lastIndexOf("\\", start);
+
+                    if (index != -1) {
+                        dir = join_path(task_dir, match.slice(0, index));
+                        match = match.slice(index + 1);
+                    }
+                }
+
+                RE_MATCH_FILE = get_path_regex("^" + match, false);
+                all = match.contains("**") || match.contains("\\");
+            } else {
+                RE_MATCH_FILE = match;
             }
 
-            //递归获取所有匹配的文件
-            var get_items = function (dir, all, rs, rel) {
+            var skip_dir = normalize_path(task_output).toLowerCase();
+
+            var get_items = function (dir, rel) {
                 if (!fs.existsSync(dir)) return;
 
                 fs.readdirSync(dir).forEach(function (filename, i) {
-                    var f = path.join(dir, filename),
-                        stat = fs.lstatSync(f);
+                    var fullpath = path.join(dir, filename),
+                        stat = fs.lstatSync(fullpath);
                     if (!stat) return;
 
                     if (stat.isDirectory()) {
-                        var reldir = path.join(rel, filename),
-                            fulldir = join_path(config.dir, reldir);
-
-                        if (all && (!is_skip_output || fulldir != output)) get_items(f, all, rs, path.join(rel, filename));
+                        if (all && (!is_skip_output || fullpath.toLowerCase() != skip_dir)) get_items(fullpath, path.join(rel, filename));
                     } else if (stat.isFile()) {
-                        if (!RE_MATCH_DIR || RE_MATCH_DIR.test(rel)) {
-                            var relname = path.join(RE_MATCH_DIR ? rel.replace(RE_MATCH_DIR, "") : rel, filename);
+                        //过滤重复文件
+                        if (map[fullpath]) return;
+                        map[fullpath] = true;
 
-                            if (RE_MATCH_FILE && !RE_MATCH_FILE.test(relname)) return;
-                            if (RE_EXCLUDE_FILE && RE_EXCLUDE_FILE.test(relname)) return;
+                        var rel_dir_name = path.join(rel, filename),
+                            rel_task_name = get_relname(fullpath, task_dir);
 
-                            var fullname = join_path(dir, filename), dest, f;
-                            relname = get_relname(fullname);
-                            dest = join_path(output, relname);
+                        if (RE_EXCLUDE_FILE && RE_EXCLUDE_FILE.test(rel_task_name)) return;
+                        if (RE_MATCH_FILE && !RE_MATCH_FILE.test(rel_dir_name)) return;
 
-                            //文件对象
-                            f = {
-                                dir: dir,            //文件所在目录
-                                destname: dest,      //默认文件保存路径
-                                dest: dest,          //文件实际保存路径
-                                fullname: fullname,  //文件完整路径
-                                relname: relname,    //相对于 config.dir 的路径
-                                filename: filename,                   //文件名(带扩展名)
-                                name: get_name_without_ext(filename), //文件名(不带扩展名)
-                                ext: path.extname(filename),          //文件扩展名
-                                stat: stat          //文件状态(最后访问时间、修改时间、文件大小等) {atime,mtime,size}
-                            };
+                        //console.log("    " + rel_task_name);
 
-                            if (rename) {
-                                //新文件名称(带扩展名)
-                                f.rename = parse_text(rename, f);
-                                //文件上次构建时的保存路径
-                                f.last_dest = (map_last_dest[dest.toLowerCase()] || {}).dest;
-                                //文件实际保存路径
-                                f.dest = path.join(path.dirname(dest), f.rename);
-                            }
+                        var dest = join_path(task_output, rel_task_name), f;
 
-                            rs.push(f);
+                        //文件对象
+                        f = {
+                            dir: dir,            //文件所在目录
+                            destname: dest,      //默认文件保存路径
+                            dest: dest,          //文件实际保存路径
+                            fullname: fullpath,  //文件完整路径
+                            relname: rel_task_name,    //相对于 task.dir 的路径
+                            filename: filename,                   //文件名(带扩展名)
+                            name: get_name_without_ext(filename), //文件名(不带扩展名)
+                            ext: path.extname(filename),          //文件扩展名
+                            stat: stat          //文件状态(最后访问时间、修改时间、文件大小等) {atime,mtime,size}
+                        };
+
+                        if (rename) {
+                            //新文件名称(带扩展名)
+                            f.rename = parse_text(rename, f);
+                            //文件上次构建时的保存路径
+                            f.last_dest = (map_last_dest[dest.toLowerCase()] || {}).dest;
+                            //文件实际保存路径
+                            f.dest = path.join(path.dirname(dest), f.rename);
                         }
+
+                        list.push(f);
                     }
                 });
             };
 
-            get_items(dir, all, rs, "");
-        };
-
-        makeArray(ops.dir || "").forEach(function (dir) {
-            get_files(join_path(dir, dir_match), has_sub_dir, list_dir);
+            get_items(dir, "");
+            //console.log();
         });
 
-        return list_dir;
+        return list;
     }
 
-    //获取相对路径,默认相对dir目录
+    //获取相对路径,默认相对config.dir目录
     function get_relname(fullname, rel_dir) {
         return path.relative(rel_dir || config.dir, fullname);
     }
@@ -493,7 +516,7 @@
         if (module) return register_module(type, module, bind);
 
         src = join_path(ROOT, src);
-        if (!fs.existsSync(src)) return log("模块 " + src + " 不存在!");
+        if (!fs.existsSync(src)) return error("模块 " + src + " 不存在!");
 
         module = require(src);
         if (module) {
@@ -602,10 +625,12 @@
         var module;
         if (!task || task.enable === false || !(module = map_module[task.type])) return fire(callback);
 
-        task.dir = makeArray(task.dir || "").map(function (dir) {
-            return join_path(config.dir, dir);
-        });
-        task.output = join_path(config.output, task.output);
+        //task.dir = makeArray(task.dir || "").map(function (dir) {
+        //    return join_path(config.dir, dir);
+        //});
+
+        task.output = join_path(config.output, task.output || task.dir);
+        task.dir = join_path(config.dir, task.dir);
         task.autoSkip = def(task.autoSkip, config.autoSkip) !== false;
         task.skipOutput = def(task.skipOutput, config.skipOutput) !== false;
         task.preload = !!def(task.preload, config.preload);
@@ -623,7 +648,7 @@
         log();
         log("-------------------- " + (task.title || task.type || "") + " --------------------");
         if (module.dirInfo !== false) {
-            log("扫描目录：" + task.dir.join("\n" + " ".repeat(10)));
+            log("扫描目录：" + task.dir);
             log("输出目录：" + task.output);
         }
         log();
@@ -694,7 +719,7 @@
             });
         } else if (task.list) {
             //list模式(for文件合并)
-            var list = task.list, dir = task.dir[0], output = task.output;
+            var list = task.list, dir = task.dir, output = task.output;
 
             if (isObject(list)) {
                 var tmp = [];
@@ -878,19 +903,21 @@
         //pattern:匹配规则,支持数组 eg:["js/**.js","m/js/**.js"]
         //ops:可指定扫描目录、输出目录、排除规则、扫描时是否跳过输出目录 eg:{ dir:"demo/",output:"release/",exclude:"**.old.js",skipOutput:true }
         getFiles: function (pattern, ops) {
-            var rs = [];
+            //var rs = [];
 
-            ops = ops || {};
-            if (!ops.dir) ops.dir = config.root;
+            //ops = ops || {};
+            //if (!ops.dir) ops.dir = config.root;
 
-            makeArray(pattern).forEach(function (match) {
-                ops.match = match;
+            //makeArray(pattern).forEach(function (match) {
+            //    ops.match = match;
 
-                var fs = get_matched_files(ops);
-                rs = rs.concat(fs);
-            });
+            //    var fs = get_matched_files(ops);
+            //    rs = rs.concat(fs);
+            //});
 
-            return rs.unique("fullname");
+            //return rs.unique("fullname");
+
+            return get_matched_files(pattern, ops);
         },
         //获取相对路径,默认相对于config.dir
         getRelname: get_relname,
