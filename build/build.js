@@ -2,7 +2,7 @@
 /*
 * 文件合并、压缩、格式化工具
 * author:devin87@qq.com
-* update:2015/08/12 11:25
+* update:2015/08/12 11:34
 */
 (function () {
     "use strict";
@@ -388,11 +388,11 @@
             var is_warning = false;
             if (is_skip_warning || is_ignore_warning) {
                 if (/^\s*(0.+?(error|错误)|(.+?\:\d+\:\s*)?(WARN|警告))/i.test(data + "")) is_warning = true;
-            } else {
-                if (!has_error) has_error = true;
             }
 
-            if (!is_skip_warning || !is_warning) print(data, YELLOW);
+            if (!is_warning && !has_error) has_error = true;
+
+            if (!is_warning || !is_skip_warning) print(data, YELLOW);
         });
 
         process.on('exit', function () {

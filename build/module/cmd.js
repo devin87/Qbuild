@@ -2,7 +2,7 @@
 /*
 * cmd.js js压缩模块
 * author:devin87@qq.com
-* update:2015/08/12 10:36
+* update:2015/08/12 11:37
 */
 var shell = Qbuild.shell,
 
@@ -42,7 +42,7 @@ module.exports = {
                     size_dest = stat_dest.size,
                     size_saved = size_source - size_dest;
 
-                if (size_source) log("原大小：" + formatSize(size_source) + " 现大小：" + formatSize(size_dest) + " 节省：" + formatSize(size_saved) + "，占比" + (size_saved * 100 / size_source).toFixed(2) + "%", Qbuild.PINK);
+                if (size_source) log("压缩前：" + formatSize(size_source) + "，压缩后：" + formatSize(size_dest) + "，节省：" + formatSize(size_saved) + "，占比" + (size_saved * 100 / size_source).toFixed(2) + "%", Qbuild.PINK);
 
                 fs.readFile(f.dest, function (err, text) {
                     f.text = text + "";
