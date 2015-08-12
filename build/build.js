@@ -2,7 +2,7 @@
 /*
 * 文件合并、压缩、格式化工具
 * author:devin87@qq.com
-* update:2015/07/21 10:29
+* update:2015/08/12 11:25
 */
 (function () {
     "use strict";
@@ -112,8 +112,8 @@
 
     //规格化路径
     function normalize_path(_path) {
-        var _path_n = path.normalize(_path);
-        return _path_n.endsWith("\\") ? _path_n.slice(0, -1) : _path_n;
+        var pathname = path.normalize(_path);
+        return pathname != "\\" && pathname.endsWith("\\") ? pathname.slice(0, -1) : pathname;
     }
 
     //判断是否绝对路径
@@ -374,19 +374,26 @@
     var process_exec = require('child_process').exec;
 
     //执行命令行调用
-    function do_shell(cmd, callback) {
+    function do_shell(cmd, callback, ops) {
         var process = process_exec(cmd),
+            is_skip_warning = ops.skipWarning,
+            is_ignore_warning = ops.ignoreWarning !== false,
             has_error;
 
-        var listen = function (std, is_error) {
-            std.on("data", function (data) {
-                if (is_error && !has_error) has_error = true;
-                print(data, is_error ? YELLOW : undefined);
-            });
-        };
+        process.stdout.on("data", function (data) {
+            print(data);
+        });
 
-        listen(process.stdout);
-        listen(process.stderr, true);
+        process.stderr.on("data", function (data) {
+            var is_warning = false;
+            if (is_skip_warning || is_ignore_warning) {
+                if (/^\s*(0.+?(error|错误)|(.+?\:\d+\:\s*)?(WARN|警告))/i.test(data + "")) is_warning = true;
+            } else {
+                if (!has_error) has_error = true;
+            }
+
+            if (!is_skip_warning || !is_warning) print(data, YELLOW);
+        });
 
         process.on('exit', function () {
             async(callback, 50, has_error);
@@ -810,7 +817,7 @@
         config.run = list_run;
         config.runText = config.runText ? makeArray(config.runText).filter(function (type) {
             return map_text_module[type];
-        }) : Object.keys(map_text_module);
+        }) : ["replace", "before", "after", "*"];
 
         var queue = new Queue({
             //注入参数索引(exec回调函数所在位置,即process_task回调函数所在位置)
