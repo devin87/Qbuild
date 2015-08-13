@@ -1,7 +1,8 @@
 ﻿/*
-* Q.js (包括 通用方法、原生对象扩展 等) for browser or Node.js
+* Q.js (包括 通用方法、原生对象扩展、队列 等) for browser or Node.js
+* https://github.com/devin87/Q.js
 * author:devin87@qq.com  
-* update:2015/06/11 10:20
+* update:2015/08/12 18:04
 */
 (function (undefined) {
     "use strict";
@@ -92,31 +93,49 @@
         return value !== undefined ? value : defValue;
     }
 
-    //检测是否为整数
-    function isInt(n, min) {
-        return typeof n == "number" && n === Math.floor(n) && (min === undefined || n >= min);
-    }
+    //检测是否为数字
+    function isNum(n, min, max) {
+        if (typeof n != "number") return false;
 
-    //检测是否为正整数
-    function isUInt(n) {
-        return isInt(n, 1);
-    }
-
-    //判断字符串是否是符合条件的数字
-    function checkNum(str, min, max, isInt) {
-        if (isNaN(str)) return false;
-
-        var n = +str;
-        if (isInt && n != Math.floor(n)) return false;
         if (min != undefined && n < min) return false;
         if (max != undefined && n > max) return false;
 
         return true;
     }
 
+    //检测是否为大于0的数字
+    function isUNum(n) {
+        return n !== 0 && isNum(n, 0);
+    }
+
+    //检测是否为整数
+    function isInt(n, min, max) {
+        return isNum(n, min, max) && n === Math.floor(n);
+    }
+
+    //检测是否为大于0的整数
+    function isUInt(n) {
+        return isInt(n, 1);
+    }
+
+    //判断字符串是否是符合条件的数字
+    function checkNum(str, min, max) {
+        return !isNaN(str) && isNum(+str, min, max);
+    }
+
     //判断字符串是否是符合条件的整数
     function checkInt(str, min, max) {
-        return checkNum(str, min, max, true);
+        return checkNum(str, min, max) && n === Math.floor(n);
+    }
+
+    //将字符串转为大写,若str不是字符串,则返回defValue
+    function toUpper(str, defValue) {
+        return typeof str == "string" ? str.toUpperCase() : defValue;
+    }
+
+    //将字符串转为小写,若str不是字符串,则返回defValue
+    function toLower(str, defValue) {
+        return typeof str == "string" ? str.toLowerCase() : defValue;
     }
 
     //转为数组
@@ -154,6 +173,38 @@
         }
 
         return [obj];
+    }
+
+    //按条件产生数组 arr(5,2,2) => [2,4,6,8,10]
+    //eg:按1-10项产生斐波那契数列 =>arr(10, function (value, i, list) { return i > 1 ? list[i - 1] + list[i - 2] : 1; })
+    //length:数组长度
+    //value:数组项的初始值
+    //step:第增值或处理函数(当前值,索引,当前产生的数组)
+    function arr(length, value, step) {
+        if (isFunc(value)) {
+            step = value;
+            value = 0;
+        }
+        if (value == undefined) value = 0;
+        if (step == undefined) step = 1;
+
+        var list = [], i = 0;
+
+        if (isFunc(step)) {
+            while (i < length) {
+                value = step(value, i, list);
+                list.push(value);
+                i++;
+            }
+        } else {
+            while (i < length) {
+                list.push(value);
+                value += step;
+                i++;
+            }
+        }
+
+        return list;
     }
 
     //prototype 别名 eg:alias(Array,"forEach","each");
@@ -265,7 +316,8 @@
         if (fn == undefined) return;
 
         return setTimeout(function () {
-            fn.apply(bind, args);
+            //ie6-7,apply第二个参数不能为空,否则报错
+            fn.apply(bind, args || []);
         }, def(time, 20));
     }
 
@@ -479,6 +531,11 @@
         toText: function () {
             return this.replace(/<br[^>]*>/ig, "\n").replace(/<script[^>]*>([^~]|~)+?<\/script>/gi, "").replace(/<[^>]+>/g, "").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&nbsp;/g, " ").replace(/&amp;/g, "&");
         }
+    });
+
+    String.alias({
+        toHtml: "htmlEncode",
+        toText: "htmlDecode"
     });
 
     //----------------------------- Number extend -----------------------------
@@ -782,7 +839,6 @@
             if (typeof s == "number") return new Date(s);
             if (typeof s == "string") {
                 if (!s) return INVALID_DATE;
-                if (!isNaN(s)) return new Date(Number(s));
 
                 //将年、月、横线(-)替换为斜线(/),将时、分替换为冒号(:),去掉日、号、秒
                 //var ds = s.replace(/[-\u5e74\u6708]/g, "/").replace(/[\u65f6\u5206\u70b9]/g, ":").replace(/[T\u65e5\u53f7\u79d2]/g, ""), date = new Date(ds);
@@ -803,7 +859,7 @@
                 //兼容只有年月的情况 eg:2014/11
                 if (!date.isValid() && ds.indexOf("/") > 0) {
                     var ps = ds.split(' '),
-                        s_date = (ps[0] + (ps[0].endsWith("/") ? "" : "/") + "01/01").split('/').slice(0, 3).join("/");
+                        s_date = (ps[0] + (ps[0].endsWith("/") ? "" : "/") + "1/1").split('/').slice(0, 3).join("/");
 
                     date = new Date(s_date + ' ' + (ps[1] || ""));
                 }
@@ -987,13 +1043,20 @@
         isArrayLike: isArrayLike,
 
         def: def,
+        isNum: isNum,
+        isUNum: isUNum,
         isInt: isInt,
         isUInt: isUInt,
         checkNum: checkNum,
         checkInt: checkInt,
 
+        toUpper: toUpper,
+        toLower: toLower,
+
         toArray: toArray,
         makeArray: makeArray,
+
+        arr: arr,
 
         alias: alias,
         extend: extend,
@@ -1031,10 +1094,10 @@
 
 })();
 
-/*
+﻿/*
 * Q.Queue.js 队列
 * author:devin87@qq.com
-* update:2015/06/11 09:50
+* update:2015/08/13 10:45
 */
 (function (undefined) {
     "use strict";
@@ -1057,7 +1120,10 @@
     var QUEUE_TASK_TIMEDOUT = -1,    //任务已超时
         QUEUE_TASK_READY = 0,        //任务已就绪，准备执行
         QUEUE_TASK_PROCESSING = 1,   //任务执行中
-        QUEUE_TASK_OK = 2;           //任务已完成
+        QUEUE_TASK_OK = 2,           //任务已完成
+
+        //自定义事件
+        LIST_CUSTOM_EVENT = ["add", "start", "end", "stop", "complete"];
 
     //异步队列
     function Queue(ops) {
@@ -1067,7 +1133,7 @@
             tasks = ops.tasks;
 
         //队列自定义事件
-        self._listener = new Listener(["add", "start", "end", "complete"], self);
+        self._listener = new Listener(LIST_CUSTOM_EVENT, self);
 
         self.auto = ops.auto !== false;
         self.workerThread = ops.workerThread || 1;
@@ -1075,7 +1141,10 @@
 
         if (ops.rtype == "auto") self.rtype = getType(tasks);
 
-        self.on("complete", ops.complete);
+        LIST_CUSTOM_EVENT.forEach(function (type) {
+            var fn = ops[type];
+            if (fn) self.on(type, fn);
+        });
 
         if (ops.inject) self.inject = ops.inject;
         if (ops.process) self.process = ops.process;
@@ -1204,7 +1273,7 @@
             var self = this;
             self.stoped = true;
 
-            if (isUInt(time)) delay(self._run, self, time);
+            if (isUInt(time)) delay(self.start, self, time);
 
             return self;
         },
@@ -1228,10 +1297,11 @@
 
             //注入回调函数
             var inject = function (result) {
+                //注入结果仅取第一个返回值,有多个结果的请使用数组或对象传递
                 task.result = result;
 
                 //执行原回调函数(如果有)
-                if (isFunc(originalCallback)) originalCallback.apply(this, [].concat(result));
+                if (isFunc(originalCallback)) originalCallback.apply(this, arguments);
 
                 //触发任务完成回调,并执行下一个任务 
                 callback();
@@ -1285,8 +1355,8 @@
         },
 
         //所有任务是否已完成
-        isCompleted: function () {
-            return this.tasks.every(function (task) {
+        isCompleted: function (tasks) {
+            return (tasks || this.tasks).every(function (task) {
                 return task.state == QUEUE_TASK_OK || task.state == QUEUE_TASK_TIMEDOUT;
             });
         },
@@ -1300,17 +1370,22 @@
 
             if (task._timer) clearTimeout(task._timer);
 
-            task.state = state;
+            if (state != undefined) task.state = state;
 
             //触发任务完成事件
             self.trigger("end", task);
 
-            //当前队列任务已完成
-            if (self.isCompleted()) {
-                self.trigger("complete", self.processResult(self.tasks));
+            if (self.stoped) {
+                //任务已停止且完成时触发任务停止事件
+                if (self.isCompleted(self.tasks.slice(0, self.index))) self.trigger("stop", self.processResult(self.tasks));
+            } else {
+                //当前队列任务已完成
+                if (self.isCompleted()) {
+                    self.trigger("complete", self.processResult(self.tasks));
 
-                //队列完成事件,此为提供注入接口
-                fire(self.complete, self);
+                    //队列完成事件,此为提供注入接口
+                    fire(self.complete, self);
+                }
             }
 
             return self._run();
