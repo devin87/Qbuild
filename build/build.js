@@ -2,7 +2,7 @@
 /*
 * 文件合并、压缩、格式化工具
 * author:devin87@qq.com
-* update:2015/08/12 11:34
+* update:2015/08/13 11:05
 */
 (function () {
     "use strict";
@@ -751,7 +751,7 @@
                 });
                 //f.join = f.join || task.join;
 
-                f.skip = is_auto_skip && !has_update(_src, _dest);
+                f.skip = is_auto_skip;
 
                 fire(module.check, module, f, task);
 
@@ -942,6 +942,9 @@
         readFile: read_file,
         //保存文件(f.text => f.dest)
         saveFile: save_file,
+
+        //根据文件修改时间判断文件是否有更新
+        hasUpdate: has_update,
 
         //简单文本解析,支持属性或函数的连续调用,支持简单参数传递,若参数含小括号,需用@包裹 eg:%Q.formatSize@(f.stat.size,{join:'()'})@%
         //不支持函数嵌套 eg:path.normalize(path.dirname(f.dest))

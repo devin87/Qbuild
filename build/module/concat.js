@@ -2,18 +2,19 @@
 /*
 * concat.js 文件合并模块
 * author:devin87@qq.com
-* update:2015/07/14 17:16
+* update:2015/08/13 11:14
 */
+require("../lib/colors.js");
+
 var fs = require("fs"),
-    colors = require("../lib/colors.js"),
     log = Qbuild.log,
     error = Qbuild.error,
-    parseText = Qbuild.parseText,
+    hasUpdate = Qbuild.hasUpdate,
 
     STR_SPACE = ' '.repeat(4);
 
-function writeInfo(fullname, isOk, next, errMsg) {
-    log(STR_SPACE + ((isOk ? '√'.green : '×'.red)) + ' ' + fullname);
+function writeInfo(fullname, isOk, next, errMsg, changed) {
+    log(STR_SPACE + ((isOk ? "√".green : "×".red)) + ' ' + (changed ? fullname.red : fullname));
 
     if (isOk) next();
     else error(fullname + " " + errMsg);
@@ -27,7 +28,7 @@ module.exports = {
     exec: function (f, task, callback) {
         var tmp = [],
             dir = f.dir,
-            is_skip = f.skip;
+            is_skip = f.skip && !hasUpdate(f.src, f.dest);
 
         var next_task = function () {
             log();
@@ -49,7 +50,7 @@ module.exports = {
                 fs.readFile(fullname, function (err, buffer) {
                     if (!err) tmp.push(buffer);
 
-                    writeInfo(relname, !err, ok, "读取错误！");
+                    writeInfo(relname, !err, ok, "读取错误！", hasUpdate(fullname, f.dest));
                 });
             },
             complete: function () {
@@ -63,7 +64,7 @@ module.exports = {
                 log(STR_SPACE + "合并：" + f.dest, Qbuild.HOT);
 
                 f.text = tmp.join(f.join || task.join || '\n\n');
-                if (f.prefix) f.text = parseText(f.prefix, f) + f.text;
+                if (f.prefix) f.text = Qbuild.parseText(f.prefix, f) + f.text;
 
                 Qbuild.runTextModules(f, task);
                 Qbuild.saveFile(f, next_task);
