@@ -1,6 +1,6 @@
 ﻿/// <reference path="lib/Q.js" />
 /*
-* 文件合并、压缩、格式化工具
+* 文件合并、压缩、格式化工具 https://github.com/devin87/Qbuild
 * author:devin87@qq.com
 * update:2015/08/13 11:05
 */
