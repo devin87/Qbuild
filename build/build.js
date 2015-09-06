@@ -2,7 +2,7 @@
 /*
 * 文件合并、压缩、格式化工具 https://github.com/devin87/Qbuild
 * author:devin87@qq.com
-* update:2015/08/13 11:05
+* update:2015/09/06 10:02
 */
 (function () {
     "use strict";
@@ -185,7 +185,7 @@
 
     //获取匹配的文件,默认基于config.root
     //pattern:匹配规则,支持数组 eg:["js/**.js","m/js/**.js"]
-    //ops:可指定扫描目录、输出目录、排除规则、扫描时是否跳过输出目录 eg:{ dir:"demo/",output:"release/",exclude:"**.old.js",skipOutput:true,matchOptimize:true }
+    //ops:可指定扫描目录、输出目录、排除规则、扫描时是否跳过输出目录 eg:{ dir:"demo/",output:"release/",dest:"release/%f.filename%",exclude:"**.old.js",skipOutput:true,matchOptimize:true }
     function get_matched_files(pattern, ops) {
         if (isObject(pattern)) {
             ops = pattern;
@@ -199,6 +199,7 @@
 
             task_dir = join_path(config.dir, ops.dir || ""),
             task_output = join_path(config.output, ops.output || ""),
+            task_dest = ops.dest,
             rename = ops.rename,
 
             is_optimize_match = ops.matchOptimize !== false,
@@ -268,20 +269,28 @@
 
                         //console.log("    " + rel_task_name);
 
-                        var dest = join_path(task_output, rel_task_name), f;
+                        var reldir = path.dirname(rel_task_name),
+                            dest = join_path(task_output, rel_task_name);
 
                         //文件对象
-                        f = {
-                            dir: dir,            //文件所在目录
-                            destname: dest,      //默认文件保存路径
-                            dest: dest,          //文件实际保存路径
-                            fullname: fullpath,  //文件完整路径
-                            relname: rel_task_name,    //相对于 task.dir 的路径
+                        var f = {
+                            dir: dir,                //文件所在目录
+                            destname: dest,          //默认文件保存路径
+                            dest: dest,              //文件实际保存路径
+                            fullname: fullpath,      //文件完整路径
+                            reldir: reldir,          //相对于 task.dir 的目录结构
+                            relname: rel_task_name,  //相对于 task.dir 的路径
                             filename: filename,                   //文件名(带扩展名)
                             name: get_name_without_ext(filename), //文件名(不带扩展名)
                             ext: path.extname(filename),          //文件扩展名
-                            stat: stat          //文件状态(最后访问时间、修改时间、文件大小等) {atime,mtime,size}
+                            stat: stat          //文件状态(最后访问时间、修改时间、文件大小等) { atime,mtime,size }
                         };
+
+                        //可配置完整的输出路径,一般与变量结合使用,否则会导致所有文件输出路径一样
+                        //eg: /release/js/%f.filename%
+                        if (task_dest) {
+                            f.dest = join_path(task_output, parse_text(task_dest, f));
+                        }
 
                         if (rename) {
                             //新文件名称(带扩展名)
@@ -743,6 +752,8 @@
 
                 f.dir = _dir = join_path(dir, f.dir);
                 f.fullname = f.dest = f.destname = _dest = join_path(output, f.dest);
+                f.relname = get_relname(f.fullname, dir);
+                f.reldir = path.dirname(f.relname);
                 f.filename = path.basename(_dest);
                 f.name = get_name_without_ext(f.filename);
                 f.ext = path.extname(_dest);
