@@ -1,8 +1,8 @@
 ﻿/*
-* Q.js (包括 通用方法、原生对象扩展、队列 等) for browser or Node.js
+* Q.js (包括 通用方法、原生对象扩展 等) for browser or Node.js
 * https://github.com/devin87/Q.js
 * author:devin87@qq.com  
-* update:2015/08/12 18:04
+* update:2015/10/16 11:05
 */
 (function (undefined) {
     "use strict";
@@ -125,7 +125,7 @@
 
     //判断字符串是否是符合条件的整数
     function checkInt(str, min, max) {
-        return checkNum(str, min, max) && n === Math.floor(n);
+        return !isNaN(str) && isInt(+str, min, max);
     }
 
     //将字符串转为大写,若str不是字符串,则返回defValue
@@ -227,7 +227,7 @@
     //扩展对象
     //forced:是否强制扩展
     function extend(destination, source, forced) {
-        if (!destination || !source) return;
+        if (!destination || !source) return destination;
 
         for (var key in source) {
             if (key == undefined || !has.call(source, key)) continue;
@@ -293,16 +293,55 @@
         return map;
     }
 
+    //按字符串排序
+    function sortString(list, prop, desc) {
+        if (desc) list.sort(function (a, b) { return -(a[prop] || "").localeCompare(b[prop] || ""); });
+        else list.sort(function (a, b) { return (a[prop] || "").localeCompare(b[prop] || ""); });
+    }
+
     //按数字排序
     function sortNumber(list, prop, desc) {
         if (desc) list.sort(function (a, b) { return b[prop] - a[prop]; });
         else list.sort(function (a, b) { return a[prop] - b[prop]; });
     }
 
-    //按字符串排序
-    function sortString(list, prop, desc) {
-        if (desc) list.sort(function (a, b) { return -a[prop].localeCompare(b[prop]); });
-        else list.sort(function (a, b) { return a[prop].localeCompare(b[prop]); });
+    //按日期排序
+    function sortDate(list, prop, desc) {
+        list.sort(function (a, b) {
+            var v1 = a[prop], v2 = b[prop];
+            if (v1 == v2) return 0;
+
+            var d1 = Date.from(v1), d2 = Date.from(v2), rv = 0;
+
+            if (d1 != INVALID_DATE && d2 != INVALID_DATE) rv = d1 - d2;
+            else if (d1 == INVALID_DATE && d2 != INVALID_DATE) rv = -1;
+            else if (d1 != INVALID_DATE && d2 == INVALID_DATE) rv = 1;
+
+            return desc ? -rv : rv;
+        });
+    }
+
+    //对象数组排序
+    //type:排序类型 0:字符串排序|1:数字排序|2:日期排序
+    function sortList(list, type, prop, desc) {
+        switch (type) {
+            case 1: sortNumber(list, prop, desc); break;
+            case 2: sortDate(list, prop, desc); break;
+            default: sortString(list, prop, desc); break;
+        }
+    }
+
+    //返回一个绑定到指定作用域的新函数
+    function proxy(fn, bind) {
+        if (isObject(fn)) {
+            var name = bind;
+            bind = fn;
+            fn = bind[name];
+        }
+
+        return function () {
+            fn.apply(bind, arguments);
+        }
     }
 
     //触发指定函数,如果函数不存在,则不触发 eg:fire(fn,this,arg1,arg2)
@@ -1066,7 +1105,10 @@
 
         sortNumber: sortNumber,
         sortString: sortString,
+        sortDate: sortDate,
+        sort: sortList,
 
+        proxy: proxy,
         fire: fire,
         delay: delay,
         async: async,
@@ -1097,7 +1139,7 @@
 ﻿/*
 * Q.Queue.js 队列
 * author:devin87@qq.com
-* update:2015/08/13 10:45
+* update:2015/10/15 10:39
 */
 (function (undefined) {
     "use strict";
@@ -1423,7 +1465,9 @@
 
     //ajax队列
     function ajaxQueue(ops) {
-        return new Queue(extend(ops || {}, {
+        ops = ops || {};
+
+        return new Queue(extend(ops, {
             exec: ops.ajax || Q.ajax || $.ajax,
             injectIndex: 1,
             injectCallback: "complete"
