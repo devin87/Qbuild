@@ -12,7 +12,7 @@
 </ul>
 
 ###运行环境：
-1. 下载 [Node.js](https://nodejs.org/download/) 并安装
+1. 下载 [Node.js](https://nodejs.org/en/download/) 并安装
 2. 下载或安装js压缩工具，任选其一
 
     1> 安装uglify，在命令行下执行以下命令
