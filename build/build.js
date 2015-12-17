@@ -2,7 +2,7 @@
 /*
 * 文件合并、压缩、格式化工具 https://github.com/devin87/Qbuild
 * author:devin87@qq.com
-* update:2015/09/06 10:02
+* update:2015/12/17 16:31
 */
 (function () {
     "use strict";
@@ -384,28 +384,20 @@
 
     //执行命令行调用
     function do_shell(cmd, callback, ops) {
-        var process = process_exec(cmd),
-            is_skip_warning = ops.skipWarning,
-            is_ignore_warning = ops.ignoreWarning !== false,
-            has_error;
+        var process = process_exec(cmd);
 
         process.stdout.on("data", function (data) {
             print(data);
         });
 
-        process.stderr.on("data", function (data) {
-            var is_warning = false;
-            if (is_skip_warning || is_ignore_warning) {
-                if (/^\s*(0.+?(error|错误)|(.+?\:\d+\:\s*)?(WARN|警告))/i.test(data + "")) is_warning = true;
-            }
-
-            if (!is_warning && !has_error) has_error = true;
-
-            if (!is_warning || !is_skip_warning) print(data, YELLOW);
-        });
+        if (ops.skipErrorLog !== true) {
+            process.stderr.on("data", function (data) {
+                print(data, YELLOW);
+            });
+        }
 
         process.on('exit', function () {
-            async(callback, 50, has_error);
+            async(callback, 50);
         });
     }
 
