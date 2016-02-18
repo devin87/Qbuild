@@ -2,7 +2,7 @@
 /*
 * append.js 文本模块:追加文本
 * author:devin87@qq.com
-* update:2015/07/10 16:23
+* update:2016/02/18 18:04
 */
 var isObject = Q.isObject,
 
@@ -24,7 +24,7 @@ module.exports = {
                     var regexp = getPathRegex(item.match, false);
                     if (regexp.test(f.fullname)) ts.push(item.text);
                 } else {
-                    var s = item[f.filename] || item.def;
+                    var s = Q.def(item[f.filename], item.def);
                     if (s) ts.push(s);
                 }
             } else {
