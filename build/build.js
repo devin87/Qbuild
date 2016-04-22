@@ -258,8 +258,8 @@
                         if (all && (!is_skip_output || fullpath.toLowerCase() != skip_dir)) get_items(fullpath, path.join(rel, filename));
                     } else if (stat.isFile()) {
                         //过滤重复文件
-                        if (map[fullpath]) return;
-                        map[fullpath] = true;
+                        //if (map[fullpath]) return;
+                        //map[fullpath] = true;
 
                         var rel_dir_name = path.join(rel, filename),
                             rel_task_name = get_relname(fullpath, task_dir);
@@ -310,7 +310,7 @@
             //console.log();
         });
 
-        return list;
+        return list.unique("fullname");
     }
 
     //获取相对路径,默认相对config.dir目录
