@@ -2,12 +2,12 @@
 /*
 * document.write.js 文本模块: document.write 输出支持
 * author:devin87@qq.com
-* update:2015/07/10 16:25
+* update:2017/12/25 15:44
 */
 var global = Q.G,
 
     KEY_STORE = "mtime_dwi",
-    RE_TAG_SCRIPT = /<script[^>]+?src=(['"])([^>]+?)\1[^>]*>/ig,
+    RE_TAG_SCRIPT = /<script[^>]+?src=(['"])([^>]+?)\1[^>]*><\/script>/ig,
 
     store = Qbuild.store,
 

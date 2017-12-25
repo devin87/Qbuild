@@ -1,7 +1,7 @@
 # Qbuild
 简单高效的项目构建工具，基于Node.js，支持js压缩、文件合并、格式化、复制和重命名等。
 
-###特点：
+### 特点：
 <ul>
     <li>轻量高效，易于配置。支持js压缩、文件合并、格式化、复制和重命名等。</li>
 	<li>基于js的配置文件，支持自定义任务模块和文本处理，支持模块重用。</li>
@@ -11,7 +11,7 @@
 	<li>支持将通过 document.write 输出内容的js文件，直接将js引用替换为输出内容。</li>
 </ul>
 
-###运行环境：
+### 运行环境：
 1. 下载 [Node.js](https://nodejs.org/en/download/) 并安装
 2. 下载或安装js压缩工具，任选其一
 
@@ -21,7 +21,7 @@
 
     2> 下载 [Google Closure Compiler](https://github.com/google/closure-compiler)
     确保本机已安装 [java7+](http://www.java.com/zh_CN/download/manual.jsp)，
-    [点此下载最新版](http://dl.google.com/closure-compiler/compiler-latest.zip)，若无法访问Google， [点此百度盘下载](http://pan.baidu.com/s/1o6SQ2kM)。解压至任意文件夹，然后在 build.data.js 配置文件指定 compiler.jar 的路径
+    [点此下载最新版](http://dl.google.com/closure-compiler/compiler-latest.zip)，若无法访问Google， [点此百度盘下载](https://pan.baidu.com/s/1cazLX8)。解压至任意文件夹，然后在 build.data.js 配置文件指定 compiler.jar 的路径
 3. 在命令行下执行（Windows 可直接运行 build.bat ），注意build文件夹路径
 
     ```node build/build.js```
@@ -30,11 +30,11 @@
     
     ```node build/build.js build.data.js build.store.json```
 
-###使用教程
+### 使用教程
 [使用Qbuild进行文件合并、压缩、格式化等处理](http://www.cnblogs.com/devin87/p/Qbuild-doc.html)
 
 
-###配置文件(build.data.js)：
+### 配置文件(build.data.js)：
 ```javascript
 module.exports = {
     //根目录,默认为配置文件所在路径,所有目录均基于此目录

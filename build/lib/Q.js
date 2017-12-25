@@ -2,7 +2,7 @@
 * Q.js (包括 通用方法、原生对象扩展 等) for browser or Node.js
 * https://github.com/devin87/Q.js
 * author:devin87@qq.com  
-* update:2015/12/02 13:15
+* update:2017/12/04 10:07
 */
 (function (undefined) {
     "use strict";
@@ -94,18 +94,23 @@
     }
 
     //检测是否为数字
-    function isNum(n, min, max) {
+    function isNum(n, min, max, max_decimal_len) {
         if (typeof n != "number") return false;
 
         if (min != undefined && n < min) return false;
         if (max != undefined && n > max) return false;
+
+        if (max_decimal_len) {
+            var l = ((n + '').split('.')[1] || '').length;
+            if (l > max_decimal_len) return false;
+        }
 
         return true;
     }
 
     //检测是否为大于0的数字
     function isUNum(n) {
-        return n !== 0 && isNum(n, 0);
+        return typeof n == "number" && n > 0;
     }
 
     //检测是否为整数
@@ -119,13 +124,13 @@
     }
 
     //判断字符串是否是符合条件的数字
-    function checkNum(str, min, max) {
-        return !isNaN(str) && isNum(+str, min, max);
+    function checkNum(str, min, max, max_decimal_len) {
+        return str != null && str != "" && !isNaN(str) && isNum(+str, min, max, max_decimal_len);
     }
 
     //判断字符串是否是符合条件的整数
     function checkInt(str, min, max) {
-        return !isNaN(str) && isInt(+str, min, max);
+        return str != null && str != "" && !isNaN(str) && isInt(+str, min, max);
     }
 
     //将字符串转为大写,若str不是字符串,则返回defValue
@@ -318,18 +323,17 @@
     }
 
     //将对象数组转换为键值对
-    //keyProp:对象中作为键的属性
-    //valueProp:对象中作为值的属性,若为空,则值为对象本身;为true时同isBuildIndex
-    //isBuildIndex:是否给对象添加index属性,值为对象在数组中的索引
-    function toObjectMap(list, keyProp, valueProp, isBuildIndex) {
+    //propKey:对象中作为键的属性
+    //propValue:对象中作为值的属性,若为空,则值为对象本身;若为true,则给对象添加index属性,值为对象在数组中的索引
+    function toObjectMap(list, propKey, propValue) {
         if (!list) return;
 
-        if (valueProp === true) {
-            isBuildIndex = valueProp;
-            valueProp = undefined;
-        }
+        var map = {}, isBuildIndex = false;
 
-        var map = {};
+        if (propValue === true) {
+            isBuildIndex = propValue;
+            propValue = undefined;
+        }
 
         for (var i = 0, len = list.length; i < len; i++) {
             var obj = list[i];
@@ -337,7 +341,7 @@
 
             if (isBuildIndex) obj.index = i;
 
-            map[obj[keyProp]] = valueProp ? obj[valueProp] : obj;
+            map[obj[propKey]] = propValue ? obj[propValue] : obj;
         }
 
         return map;
@@ -371,12 +375,38 @@
         });
     }
 
+    var list_pow = [256 * 256 * 256, 256 * 256, 256, 0];
+
+    //IP转数字（用于排序）
+    function ip2int(ip) {
+        var ips = ip.split('.'), len = ips.length, i = 0, n = 0;
+        while (i < len) {
+            n += list_pow[i] + ips[i];
+            i++;
+        }
+
+        return n || 0;
+    }
+
+    //按IP排序
+    function sortIP(list, prop, desc) {
+        list.sort(function (a, b) {
+            var v1 = a[prop] || "", v2 = b[prop] || "";
+            if (v1 == v2) return 0;
+
+            var rv = ip2int(v1) - ip2int(v2);
+
+            return desc ? -rv : rv;
+        });
+    }
+
     //对象数组排序
-    //type:排序类型 0:字符串排序|1:数字排序|2:日期排序
+    //type:排序类型 0:字符串排序|1:数字排序|2:日期排序|3:IP排序
     function sortList(list, type, prop, desc) {
         switch (type) {
             case 1: sortNumber(list, prop, desc); break;
             case 2: sortDate(list, prop, desc); break;
+            case 3: sortIP(list, prop, desc); break;
             default: sortString(list, prop, desc); break;
         }
     }
@@ -456,8 +486,15 @@
         }
     }
 
-    //简单通用工厂,取自mootools
-    function factory(init) {
+    //简单通用工厂
+    function factory(init, Super) {
+        if (Super && isFunc(Super)) {
+            var F = function () { };
+            F.prototype = Super.prototype;
+
+            init.prototype = new F();
+        }
+
         var obj = init;
 
         obj.constructor = factory;
@@ -612,19 +649,14 @@
         reverse: function () {
             return this.split("").reverse().join("");
         },
-        //转为html输出(html编码) eg:\n => <br/>
-        toHtml: function () {
+        //html编码 eg:\n => <br/>
+        htmlEncode: function () {
             return this.replace(/\x26/g, "&amp;").replace(/\x3c/g, "&lt;").replace(/\x3e/g, "&gt;").replace(/\r?\n|\r/g, "<br/>").replace(/\t/g, "&nbsp;&nbsp;&nbsp;&nbsp;").replace(/\s/g, "&nbsp;");
         },
-        //转为text输出(html解码) eg:<br/> => \n
-        toText: function () {
+        //html解码 eg:<br/> => \n
+        htmlDecode: function () {
             return this.replace(/<br[^>]*>/ig, "\n").replace(/<script[^>]*>([^~]|~)+?<\/script>/gi, "").replace(/<[^>]+>/g, "").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&nbsp;/g, " ").replace(/&amp;/g, "&");
         }
-    });
-
-    String.alias({
-        toHtml: "htmlEncode",
-        toText: "htmlDecode"
     });
 
     //----------------------------- Number extend -----------------------------
@@ -787,11 +819,10 @@
             return toMap(this, value, ignoreCase);
         },
         //将对象数组转换为键值对
-        //keyProp:对象中作为键的属性
-        //valueProp:对象中作为值的属性,若为空,则值为对象本身;为true时同isBuildIndex
-        //isBuildIndex:是否给对象添加index属性,值为对象在数组中的索引
-        toObjectMap: function (keyProp, valueProp, isBuildIndex) {
-            return toObjectMap(this, keyProp, valueProp, isBuildIndex);
+        //propKey:对象中作为键的属性
+        //propValue:对象中作为值的属性,若为空,则值为对象本身;若为true,则给对象添加index属性,值为对象在数组中的索引
+        toObjectMap: function (propKey, propValue) {
+            return toObjectMap(this, propKey, propValue);
         }
     });
 
@@ -832,14 +863,14 @@
             return !isNaN(this.valueOf());
         },
         //格式化日期显示 eg:(new Date()).format("yyyy-MM-dd hh:mm:ss");
-        format: function (format, lang) {
-            lang = lang || {};
+        format: function (format, ops) {
+            ops = ops || {};
 
-            if (!this.isValid()) return lang.invalid || "--";
+            if (!this.isValid()) return ops.invalid || "--";
 
-            var months = lang.months,
-                weeks = lang.weeks || WEEKS,
-                aps = lang.aps || APS,
+            var months = ops.months,
+                weeks = ops.weeks || WEEKS,
+                aps = ops.aps || APS,
 
                 len = DATE_REPLACEMENTS.length,
                 i = 0;
@@ -877,7 +908,7 @@
 
             return format;
         },
-        //通过将一个时间间隔与指定 date 的指定 part 相加，返回一个新的 Date 值
+        //按照part(y|M|d|h|m|s|ms)添加时间间隔
         add: function (part, n) {
             var date = this;
             switch (part) {
@@ -937,7 +968,7 @@
                     ms;
 
                 if (index != -1) {
-                    ms = +ds.slice(index + 1);
+                    ms = +ds.slice(index + 1, index + 4);
                     ds = ds.slice(0, index);
                 }
 
@@ -954,7 +985,7 @@
                 //设置毫秒
                 if (ms) date.setMilliseconds(ms);
 
-                return date.isValid() ? (isUTC ? date.fromUTC() : date) : s;
+                return date.isValid() ? (isUTC ? date.fromUTC() : date) : INVALID_DATE;
             }
 
             return toString.call(s) == "[object Date]" ? s : INVALID_DATE;
@@ -986,10 +1017,11 @@
     //types:自定义事件列表
     //bind:事件函数绑定的上下文 eg:fn.call(bind)
     function Listener(types, bind) {
-        this.map = {};
-        this.bind = bind;
-
         var self = this;
+
+        self.map = {};
+        self.bind = bind;
+
         types.forEach(function (type) {
             self.map[type] = [];
         });
@@ -998,7 +1030,7 @@
     Listener.prototype = {
         constructor: Listener,
 
-        //添加事件 eg:listener.add("start",fn);
+        //添加自定义事件 eg:listener.add("start",fn);
         add: function (type, fn) {
             var map = this.map;
 
@@ -1012,15 +1044,93 @@
 
             return this;
         },
+        //移除自定义事件,若fn为空,则移除该类型下的所有事件
+        remove: function (type, fn) {
+            if (fn != undefined) {
+                var list = this.map[type], i = list.length;
+                while (--i >= 0) {
+                    if (list[i] == fn) list = list.splice(i, 1);
+                }
+            } else {
+                this.map[type] = [];
+            }
+
+            return this;
+        },
         //触发自定义事件 eg:listener.trigger("click",args);
         trigger: function (type, args) {
             var self = this,
-                list = self.map[type];
+                list = self.map[type],
+                len = list.length,
+                i = 0;
 
-            return list.length > 0 ? list.map(function (fn) {
-                //确保args为数组
-                return fn.apply(self.bind, [].concat(args));
-            }) : undefined;
+            for (; i < len; i++) {
+                if (list[i].apply(self.bind, [].concat(args)) === false) break;
+            }
+
+            return self;
+        }
+    };
+
+    //-------------------------- 搜索 --------------------------
+
+    var SE = {
+        //获取搜索对象
+        get: function (words) {
+            var pattern = words.replace(/\\(?!d|B|w|W|s|S)/g, "\\\\").replace(/\./g, "\\.").replace(/[\[\]\(\)]/g, "\\$&").replace(/\*/, ".*");
+
+            return new RegExp(pattern, "i");
+        },
+
+        //在列表内搜索
+        //props:要搜索的属性数组
+        //keywords:搜索关键字
+        //highlight:是否记录高亮信息
+        search: function (list, props, keywords, highlight) {
+            if (!list || list.length <= 0) return [];
+
+            if (!keywords) {
+                list.forEach(function (u) {
+                    u.__match = undefined;
+                });
+
+                return list;
+            }
+
+            var tester = SE.get(keywords);
+
+            var tmp = list.filter(function (data) {
+                var matched = false;
+
+                var map_match = {};
+
+                props.forEach(function (prop) {
+                    var text = data[prop];
+                    if (!text || !tester.test(text)) return;
+
+                    if (highlight) map_match[prop] = (text + "").replace(tester, '`#`{$&}`#`');
+
+                    matched = true;
+                });
+
+                data.__match = matched && highlight ? map_match : undefined;
+
+                return matched;
+            });
+
+            return tmp;
+        },
+
+        //读取数据,若搜索时启用了高亮,则返回高亮字符串
+        read: function (data, prop) {
+            var match = data.__match;
+            if (match && match[prop]) {
+                return match[prop].htmlEncode().replace(/`#`{(.+?)}`#`/g, function (m, m1) {
+                    return '<span class="light">' + m1 + '</span>';
+                });
+            }
+
+            return ((data[prop] || "") + "").htmlEncode();
         }
     };
 
@@ -1030,6 +1140,7 @@
     var RE_MAIL = /^[\w\.-]+@[\w-]+(\.[\w-]+)*\.[\w-]+$/,           //验证邮箱
         RE_PHONE = /^(1\d{10}|(\d{3,4}-?)?\d{7,8}(-\d{1,4})?)$/,    //验证电话号码(手机号码、带区号或不带区号、带分机号或不带分机号)
         RE_TEL = /^1\d{10}$/,                                       //验证手机号码
+        RE_MAC = /[a-fA-F0-9]{2}([:-][a-fA-F0-9]{2}){5}/,           //验证MAC地址
         RE_HTTP = /^https?:\/\//i;
 
     //判断字符串是否符合IPv4格式
@@ -1060,6 +1171,11 @@
         return RE_TEL.test(str);
     }
 
+    //是否符合MAC地址格式 00:11:22:33:44:ff
+    function isMAC(str) {
+        return RE_MAC.test(str);
+    }
+
     //是否http路径(以 http:// 或 https:// 开头)
     function isHttpURL(url) {
         return RE_HTTP.test(url);
@@ -1083,8 +1199,8 @@
         }
 
         if (level && size < stepNow) {
-            stepNow /= (isNum ? steps : steps.last());
             level--;
+            stepNow /= (isNum ? steps : steps[level]);
         }
 
         return { value: level ? size / stepNow : size, level: level };
@@ -1112,6 +1228,135 @@
         pl.text = text + (ops.join || "") + (ops.units || UNITS_FILE_SIZE)[pl.level + (ops.start || 0)];
 
         return ops.all ? pl : pl.text;
+    }
+
+    //编码url参数
+    var encode_url_param = encodeURIComponent;
+
+    //解码url参数值 eg:%E6%B5%8B%E8%AF%95 => 测试
+    function decode_url_param(param) {
+        try {
+            return decodeURIComponent(param);
+        } catch (e) {
+            return param;
+        }
+    }
+
+    //将对象转为查询字符串
+    function to_param_str(obj) {
+        if (!obj) return "";
+        if (typeof obj == "string") return obj;
+
+        var tmp = [];
+
+        Object.forEach(obj, function (k, v) {
+            if (typeof v != "function") tmp.push(encode_url_param(k) + "=" + (v != undefined ? encode_url_param(v) : ""));
+        });
+
+        return tmp.join("&");
+    }
+
+    //连接url和查询字符串(支持传入对象)
+    function join_url(url) {
+        var params = [], args = arguments;
+        for (var i = 1, len = args.length; i < len; i++) {
+            var param = args[i];
+            if (param) params.push(to_param_str(param));
+        }
+
+        var index = url.indexOf("#"), hash = "";
+        if (index != -1) {
+            hash = url.slice(index);
+            url = url.slice(0, index);
+        }
+
+        url = url.replace(/\?&$|\?$|\&$/, '');
+
+        var str_params = params.join("&");
+        if (str_params) url += (url.contains("?") ? "&" : "?") + str_params;
+
+        return url + hash;
+    }
+
+    //解析url参数 eg:url?id=1
+    function parse_url_params(search) {
+        if (!search) return {};
+
+        if (search.charAt(0) == "?") search = search.slice(1);
+        if (!search) return {};
+
+        var list = search.split("&"), map = {};
+
+        for (var i = 0, len = list.length; i < len; i++) {
+            //跳过空字符串
+            if (!list[i]) continue;
+
+            var kv = list[i].split("="),
+                key = kv[0],
+                value = kv[1];
+
+            if (key) map[decode_url_param(key)] = value ? decode_url_param(value) : "";
+        }
+
+        return map;
+    }
+
+    //编码或解码查询字符串
+    function process_url_param(obj) {
+        if (obj == undefined) return;
+
+        return typeof obj == "string" ? parse_url_params(obj) : to_param_str(obj);
+    }
+
+    var DEF_LOC = GLOBAL.location || { protocol: "", hash: "", pathname: "" };
+
+    //解析URL路径 => {href,protocol,host,hostname,port,pathname,search,hash}
+    function parse_url(url) {
+        //return new URL(url);
+
+        var m = url.match(/(^[^:]*:)?\/\/([^:]+)(:\d+)?(\/[^?]+)?(\?[^#]*)?(#.*)?$/),
+            protocol = m[1] || DEF_LOC.protocol,
+            hostname = m[2],
+            port = (m[3] || "").slice(1),
+            host = hostname + ":" + port,
+            pathname = m[4] || "/",
+            search = m[5] || "",
+            hash = m[6] || "";
+
+        return { href: protocol + "//" + host + pathname + search + hash, protocol: protocol, host: host, hostname: hostname, port: port, pathname: pathname, search: search, hash: hash };
+    }
+
+    //解析url hash eg:#net/config!/wan  => {nav:"#net/config",param:"wan"}
+    function parse_url_hash(hash) {
+        if (!hash) hash = DEF_LOC.hash;
+        //可能对后续处理造成影响,比如 param 中有/等转码字符
+        //if(hash) hash = decode_url_param(hash);
+
+        var nav = hash, param;
+
+        if (hash) {
+            var index = hash.indexOf("!/");
+            if (index != -1) {
+                nav = hash.slice(0, index);
+                param = hash.slice(index + 2);
+            }
+        }
+
+        return { nav: nav, param: param };
+    }
+
+    //获取页名称
+    //keepQueryHash:是否保留查询字符串和Hash字符串
+    function get_page_name(path, keepQueryHash) {
+        var pathname = (path || DEF_LOC.pathname).replace(/\\/g, "/"),
+            start = pathname.lastIndexOf("/") + 1;
+
+        if (keepQueryHash) return pathname.slice(start);
+
+        var end = pathname.indexOf("?", start);
+        if (end == -1) end = pathname.indexOf("#", start);
+
+        return end != -1 ? pathname.slice(start, end) : pathname.slice(start);
     }
 
     //---------------------- export ----------------------
@@ -1170,12 +1415,23 @@
         isMail: isMail,
         isPhone: isPhone,
         isTel: isTel,
+        isMAC: isMAC,
         isHttpURL: isHttpURL,
 
         parseLevel: parseLevel,
         formatSize: formatSize,
 
-        Listener: Listener
+        parseUrlParams: parse_url_params,
+        joinUrlParams: to_param_str,
+        param: process_url_param,
+        join: join_url,
+
+        parseUrl: parse_url,
+        parseHash: parse_url_hash,
+        getPageName: get_page_name,
+
+        Listener: Listener,
+        SE: SE
     };
 
     GLOBAL.Q = Q;
@@ -1187,9 +1443,9 @@
 })();
 
 ﻿/*
-* Q.Queue.js 队列
+* Q.Queue.js 队列 for browser or Node.js
 * author:devin87@qq.com
-* update:2015/10/15 10:39
+* update:2016/03/03 17:54
 */
 (function (undefined) {
     "use strict";
@@ -1246,7 +1502,7 @@
 
         self.reset();
 
-        delay(self.addList, self, 0, [tasks]);
+        self.addList(tasks);
     }
 
     factory(Queue).extend({
@@ -1400,6 +1656,8 @@
             };
 
             if (injectCallback != undefined) {
+                if (!data) data = {};
+
                 //避免重复注入
                 var qcallback = data.__qcallback;
                 originalCallback = qcallback || data[injectCallback];
