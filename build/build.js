@@ -76,7 +76,7 @@
 
             mkdir(path.dirname(PATH_STORE));
 
-            fs.writeFile(PATH_STORE, JSON.stringify(storage), 'utf-8', callback);
+            fs.writeFile(PATH_STORE, JSON.stringify(storage), 'utf-8', callback || function () { });
         }
     };
 
@@ -776,7 +776,12 @@
 
                 exec: function (f, ok) {
                     after_check(f, function () {
-                        fire(module_exec, module, f, task, ok);
+                        if (!task._c) task._c = 0;
+
+                        //执行100次回调后改为异步调用，以避免回调过多导致的堆栈溢出错误
+                        var cb = ++task._c % 100 == 0 ? function () { setTimeout(ok, 10); } : ok;
+
+                        fire(module_exec, module, f, task, cb);
                     });
                 },
                 complete: function () {

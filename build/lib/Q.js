@@ -2,7 +2,7 @@
 * Q.js (包括 通用方法、原生对象扩展 等) for browser or Node.js
 * https://github.com/devin87/Q.js
 * author:devin87@qq.com  
-* update:2017/12/04 10:07
+* update:2018/02/01 11:21
 */
 (function (undefined) {
     "use strict";
@@ -862,7 +862,7 @@
         isValid: function () {
             return !isNaN(this.valueOf());
         },
-        //格式化日期显示 eg:(new Date()).format("yyyy-MM-dd hh:mm:ss");
+        //格式化日期显示 eg:(new Date()).format("yyyy-MM-dd HH:mm:ss");
         format: function (format, ops) {
             ops = ops || {};
 
@@ -993,7 +993,7 @@
 
         //获取秒转化的时间部分
         parts: function (t) {
-            var days = 0, hours = 0, mintues = 0;
+            var days = 0, hours = 0, minutes = 0;
 
             days = Math.floor(t / 86400);
             if (days > 0) t -= days * 86400;
@@ -1001,10 +1001,11 @@
             hours = Math.floor(t / 3600);
             if (hours > 0) t -= hours * 3600;
 
-            mintues = Math.floor(t / 60);
-            if (mintues > 0) t -= mintues * 60;
+            minutes = Math.floor(t / 60);
+            if (minutes > 0) t -= minutes * 60;
 
-            return { days: days, hours: hours, mintues: mintues, seconds: t };
+            //mintues: 之前拼写错误，此为兼容之前的调用
+            return { days: days, hours: hours, minutes: minutes, mintues: minutes, seconds: t };
         },
 
         //计算时间t所代表的总数
@@ -1140,7 +1141,7 @@
     var RE_MAIL = /^[\w\.-]+@[\w-]+(\.[\w-]+)*\.[\w-]+$/,           //验证邮箱
         RE_PHONE = /^(1\d{10}|(\d{3,4}-?)?\d{7,8}(-\d{1,4})?)$/,    //验证电话号码(手机号码、带区号或不带区号、带分机号或不带分机号)
         RE_TEL = /^1\d{10}$/,                                       //验证手机号码
-        RE_MAC = /[a-fA-F0-9]{2}([:-][a-fA-F0-9]{2}){5}/,           //验证MAC地址
+        RE_MAC = /^[a-fA-F0-9]{2}([:-][a-fA-F0-9]{2}){5}$/,         //验证MAC地址
         RE_HTTP = /^https?:\/\//i;
 
     //判断字符串是否符合IPv4格式
