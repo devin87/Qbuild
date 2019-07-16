@@ -13,7 +13,7 @@ var shell = Qbuild.shell,
     print = Qbuild.print;
 
 module.exports = {
-    type: ["cmd", "cmd0", "cmd1"],
+    type: "cmd",
 
     exec: function (f, task, callback) {
         if (f.skip) {

@@ -11,7 +11,7 @@ var log = Qbuild.log,
     formatSize = Q.formatSize;
 
 module.exports = {
-    type: ["copy", "copy0", "copy1"],
+    type: "copy",
 
     init: function (task) {
         //不预加载文件内容,不重命名文件

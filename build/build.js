@@ -2,7 +2,7 @@
 /*
 * 文件合并、压缩、格式化工具 https://github.com/devin87/Qbuild
 * author:devin87@qq.com
-* update:2015/12/17 16:31
+* update:2019/07/16 16:47
 */
 (function () {
     "use strict";
@@ -403,12 +403,17 @@
 
     //----------------------- 简单参数解析 -----------------------
 
+    var START_DATE = new Date();
+
     extend(global, {
         path: path,
         fs: fs,
 
+        START_DATE: START_DATE,
+        START_TICK: START_DATE.getTime(),
+
         date: function (format) {
-            return new Date().format(format || "yyyy/MM/dd HH:mm:ss");
+            return format ? new Date().format(format) : new Date();
         }
     });
 
@@ -450,9 +455,10 @@
                 obj;
 
             switch (key1) {
-                case "NOW": obj = date(); break;
+                case "NOW": obj = date("yyyy/MM/dd HH:mm:ss"); break;
                 case "DATE": obj = date("yyyy/MM/dd"); break;
                 case "TIME": obj = date("HH:mm:ss"); break;
+                case "TICK": obj = Date.now(); break;
                 default:
                     if (args1) obj = global[key1].apply(global, args1);
                     else obj = key1 == "f" ? f : global[key1];
@@ -512,6 +518,11 @@
         else if (isFunc(module)) module = { exec: module };
 
         if (isObject(module)) {
+            if (typeof type == "string") {
+                type = ["", 0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map(function (v) {
+                    return type + v;
+                });
+            }
             makeArray(type).forEach(function (type) {
                 map[type] = module;
             });
@@ -572,7 +583,7 @@
             list_run = config.runText;
             if (task._map_text) list_run = list_run.concat(Object.keys(task._map_text));
         }
-
+        
         var list = [],
             map_run = list_run.toMap(true),
             tmp = [],
@@ -588,8 +599,8 @@
         list_run.forEach(function (type) {
             if (type != "*") {
                 tmp.push(type);
-                has_other = true;
             } else if (!has_other) {
+                has_other = true;
                 list.forEach(function (m) {
                     if (!map_run[m.type]) tmp.push(m.type);
                 });
@@ -614,7 +625,7 @@
             list_run = task.runText,
             len = list_run.length,
             i = 0;
-
+        
         for (; i < len; i++) {
             var type = list_run[i],
                 module = map[type] || map_text_module[type];
@@ -821,12 +832,12 @@
         load_text_modules(config.registerText || path.join(ROOT_EXEC, "./module/text/*.js"));
 
         var list_run = config.run ? makeArray(config.run) : Object.keys(map_module);
-
+        
         config.run = list_run;
         config.runText = config.runText ? makeArray(config.runText).filter(function (type) {
             return map_text_module[type];
         }) : ["replace", "before", "after", "*"];
-
+        
         var queue = new Queue({
             //注入参数索引(exec回调函数所在位置,即process_task回调函数所在位置)
             injectIndex: 1,

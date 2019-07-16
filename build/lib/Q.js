@@ -2,7 +2,7 @@
 * Q.js (包括 通用方法、原生对象扩展 等) for browser or Node.js
 * https://github.com/devin87/Q.js
 * author:devin87@qq.com  
-* update:2018/02/01 11:21
+* update:2019/05/10 08:42
 */
 (function (undefined) {
     "use strict";
@@ -16,18 +16,19 @@
         slice = Array.prototype.slice;
 
     //严格模式与window识别检测
-    function detect_strict_mode() {
-        var f = function (arg) {
-            arguments[0] = 1;
+    //2018/10/10: uglify压缩会导致此检测函数失效
+    //function detect_strict_mode() {
+    //    var f = function (arg) {
+    //        arguments[0] = 1;
 
-            return arg != arguments[0];
-        };
+    //        return arg != arguments[0];
+    //    };
 
-        return f(0);
-    }
+    //    return f(0);
+    //}
 
-    //是否严格模式
-    var is_strict_mode = detect_strict_mode(),
+    //默认严格模式,不再通过检测判断
+    var is_strict_mode = true, //detect_strict_mode(),
         is_window_mode = GLOBAL == GLOBAL.window;
 
     //返回对象的类型(小写)
@@ -44,7 +45,7 @@
             if (typeof obj.length === "number") {
                 //严格模式禁止使用 arguments.callee,调用会报错
                 //IE9+等使用 toString.call 会返回 [object Arguments],此为兼容低版本IE
-                if (!is_strict_mode && obj.callee) return "arguments";
+                //if (!is_strict_mode && obj.callee) return "arguments";
 
                 //IE9+等使用 toString.call 会返回 [object Window],此为兼容低版本IE
                 if (obj == obj.window) return "window";
@@ -93,9 +94,9 @@
         return value !== undefined ? value : defValue;
     }
 
-    //检测是否为数字
+    //检测是否是符合条件的数字(n必须为数字类型)
     function isNum(n, min, max, max_decimal_len) {
-        if (typeof n != "number") return false;
+        if (typeof n != "number" || isNaN(n)) return false;
 
         if (min != undefined && n < min) return false;
         if (max != undefined && n > max) return false;
@@ -108,12 +109,12 @@
         return true;
     }
 
-    //检测是否为大于0的数字
+    //检测是否为大于0的数字(n必须为数字类型)
     function isUNum(n) {
         return typeof n == "number" && n > 0;
     }
 
-    //检测是否为整数
+    //检测是否为整数(n必须为数字类型)
     function isInt(n, min, max) {
         return isNum(n, min, max) && n === Math.floor(n);
     }
@@ -123,14 +124,24 @@
         return isInt(n, 1);
     }
 
-    //判断字符串是否是符合条件的数字
+    //判断是否是符合条件的数字
     function checkNum(str, min, max, max_decimal_len) {
-        return str != null && str != "" && !isNaN(str) && isNum(+str, min, max, max_decimal_len);
+        if (typeof str == "number") return isNum(str, min, max, max_decimal_len);
+        if (typeof str == "string") {
+            str = str.trim();
+            return str && isNum(+str, min, max, max_decimal_len);
+        }
+        return false;
     }
 
-    //判断字符串是否是符合条件的整数
+    //判断是否是符合条件的整数
     function checkInt(str, min, max) {
-        return str != null && str != "" && !isNaN(str) && isInt(+str, min, max);
+        if (typeof str == "number") return isInt(str, min, max);
+        if (typeof str == "string") {
+            str = str.trim();
+            return str && isInt(+str, min, max);
+        }
+        return false;
     }
 
     //将字符串转为大写,若str不是字符串,则返回defValue
@@ -228,7 +239,11 @@
 
         for (; i < len; i++) {
             item = list[i];
-            if ((item && item[prop] != undefined) || !skipUndefined) tmp.push(item[prop]);
+            if (item && item[prop] != undefined) {
+                tmp.push(item[prop]);
+            } else if (!skipUndefined) {
+                tmp.push(undefined);
+            }
         }
 
         return tmp;
@@ -347,16 +362,24 @@
         return map;
     }
 
+    //转为字符串
+    //undefined|null  => ""
+    //true|false      => "true" | "false"
+    //0               => "0"
+    function to_string(v) {
+        return v == undefined ? "" : v + "";
+    }
+
     //按字符串排序
     function sortString(list, prop, desc) {
-        if (desc) list.sort(function (a, b) { return -(a[prop] || "").localeCompare(b[prop] || ""); });
-        else list.sort(function (a, b) { return (a[prop] || "").localeCompare(b[prop] || ""); });
+        if (desc) list.sort(function (a, b) { return -to_string(a[prop]).localeCompare(to_string(b[prop])); });
+        else list.sort(function (a, b) { return to_string(a[prop]).localeCompare(to_string(b[prop])); });
     }
 
     //按数字排序
     function sortNumber(list, prop, desc) {
-        if (desc) list.sort(function (a, b) { return b[prop] - a[prop]; });
-        else list.sort(function (a, b) { return a[prop] - b[prop]; });
+        if (desc) list.sort(function (a, b) { return (+b[prop] || 0) - (+a[prop] || 0); });
+        else list.sort(function (a, b) { return (+a[prop] || 0) - (+b[prop] || 0); });
     }
 
     //按日期排序
@@ -375,17 +398,11 @@
         });
     }
 
-    var list_pow = [256 * 256 * 256, 256 * 256, 256, 0];
-
     //IP转数字（用于排序）
     function ip2int(ip) {
-        var ips = ip.split('.'), len = ips.length, i = 0, n = 0;
-        while (i < len) {
-            n += list_pow[i] + ips[i];
-            i++;
-        }
+        var ips = ip.split('.');
 
-        return n || 0;
+        return (+ips[0] || 0) * 256 * 256 * 256 + (+ips[1] || 0) * 256 * 256 + (+ips[2] || 0) * 256 + (+ips[3] || 0);
     }
 
     //按IP排序
@@ -476,13 +493,45 @@
             count: 0,
             startTime: +new Date
         });
-    };
+    }
 
     //遍历数组或类数组
     //与浏览器实现保持一致(忽略未初始化的项,注意:ie8及以下会忽略数组中 undefined 项)
     function each_array(list, fn, bind) {
         for (var i = 0, len = list.length; i < len; i++) {
             if (i in list) fn.call(bind, list[i], i, list);
+        }
+    }
+
+    //函数节流,返回一个在指定时间内最多执行一次的函数,第一次或超过指定时间则立即执行函数
+    function throttle(time, fn, bind) {
+        var last_exec_time, timer;
+
+        var exec = function (args) {
+            last_exec_time = Date.now();
+            if (timer) {
+                clearTimeout(timer);
+                timer = undefined;
+            }
+            fn.apply(bind, args);
+        };
+
+        return function () {
+            if (!last_exec_time || Date.now() - last_exec_time > time) return exec(arguments);
+            if (!timer) timer = setTimeout(function () { exec(arguments); }, time);
+        };
+    }
+
+    //函数防抖,返回一个延迟指定时间且仅执行最后一次触发的函数
+    function debounce(time, fn, bind) {
+        var timer;
+        return function () {
+            if (timer) clearTimeout(timer);
+
+            var args = arguments;
+            timer = setTimeout(function () {
+                fn.apply(bind, args);
+            }, time);
         }
     }
 
@@ -958,6 +1007,8 @@
             if (typeof s == "string") {
                 if (!s) return INVALID_DATE;
 
+                if (!isNaN(s) && s.length > 6) return new Date(+s);
+
                 //将年、月、横线(-)替换为斜线(/),将时、分替换为冒号(:),去掉日、号、秒
                 //var ds = s.replace(/[-\u5e74\u6708]/g, "/").replace(/[\u65f6\u5206\u70b9]/g, ":").replace(/[T\u65e5\u53f7\u79d2]/g, ""), date = new Date(ds);
                 var isUTC = s.slice(s.length - 1) == "Z",
@@ -1251,7 +1302,7 @@
         var tmp = [];
 
         Object.forEach(obj, function (k, v) {
-            if (typeof v != "function") tmp.push(encode_url_param(k) + "=" + (v != undefined ? encode_url_param(v) : ""));
+            if (v != undefined && typeof v != "function") tmp.push(encode_url_param(k) + "=" + encode_url_param(v));
         });
 
         return tmp.join("&");
@@ -1283,7 +1334,12 @@
     function parse_url_params(search) {
         if (!search) return {};
 
-        if (search.charAt(0) == "?") search = search.slice(1);
+        var i = search.indexOf("?");
+        if (i != -1) search = search.slice(i + 1);
+
+        var j = search.indexOf("#");
+        if (j != -1) search = search.slice(0, j);
+
         if (!search) return {};
 
         var list = search.split("&"), map = {};
@@ -1311,20 +1367,34 @@
 
     var DEF_LOC = GLOBAL.location || { protocol: "", hash: "", pathname: "" };
 
-    //解析URL路径 => {href,protocol,host,hostname,port,pathname,search,hash}
+    //解析URL路径 => {href,origin,protocol,host,hostname,port,pathname,search,hash}
     function parse_url(url) {
         //return new URL(url);
 
-        var m = url.match(/(^[^:]*:)?\/\/([^:]+)(:\d+)?(\/[^?]+)?(\?[^#]*)?(#.*)?$/),
+        var m = url.match(/(^[^:]*:)?\/\/([^:\/]+)(:\d+)?(.*)$/),
             protocol = m[1] || DEF_LOC.protocol,
             hostname = m[2],
             port = (m[3] || "").slice(1),
-            host = hostname + ":" + port,
-            pathname = m[4] || "/",
-            search = m[5] || "",
-            hash = m[6] || "";
+            host = hostname + (port ? ":" + port : ""),
 
-        return { href: protocol + "//" + host + pathname + search + hash, protocol: protocol, host: host, hostname: hostname, port: port, pathname: pathname, search: search, hash: hash };
+            pathname = m[4] || "",
+            search = "",
+            hash = "",
+
+            i = pathname.indexOf("#");
+
+        if (i != -1) {
+            hash = pathname.slice(i);
+            pathname = pathname.slice(0, i);
+        }
+
+        i = pathname.indexOf("?");
+        if (i != -1) {
+            search = pathname.slice(i);
+            pathname = pathname.slice(0, i);
+        }
+
+        return { href: protocol + "//" + host + pathname + search + hash, origin: protocol + "//" + host, protocol: protocol, host: host, hostname: hostname, port: port, pathname: pathname || "/", search: search, hash: hash };
     }
 
     //解析url hash eg:#net/config!/wan  => {nav:"#net/config",param:"wan"}
@@ -1399,6 +1469,8 @@
         toMap: toMap,
         toObjectMap: toObjectMap,
 
+        ip2int: ip2int,
+
         sortNumber: sortNumber,
         sortString: sortString,
         sortDate: sortDate,
@@ -1409,6 +1481,9 @@
         delay: delay,
         async: async,
         waitFor: waitFor,
+
+        throttle: throttle,
+        debounce: debounce,
 
         factory: factory,
 
@@ -1446,7 +1521,7 @@
 ﻿/*
 * Q.Queue.js 队列 for browser or Node.js
 * author:devin87@qq.com
-* update:2016/03/03 17:54
+* update:2019/01/25 09:40
 */
 (function (undefined) {
     "use strict";
@@ -1472,7 +1547,7 @@
         QUEUE_TASK_OK = 2,           //任务已完成
 
         //自定义事件
-        LIST_CUSTOM_EVENT = ["add", "start", "end", "stop", "complete"];
+        LIST_CUSTOM_EVENT = ["add", "start", "end", "stop", "complete", "limit"];
 
     //异步队列
     function Queue(ops) {
@@ -1484,9 +1559,13 @@
         //队列自定义事件
         self._listener = new Listener(LIST_CUSTOM_EVENT, self);
 
-        self.auto = ops.auto !== false;
-        self.workerThread = ops.workerThread || 1;
-        self.timeout = ops.timeout;
+        self.count = +ops.count || 10000;               //队列长度,超过后将清理已完成的任务
+        self.limitMode = ops.limitMode || 1;            //队列在超出长度后的限制模式(1:禁止添加|2:清理早期的任务)
+        self.auto = ops.auto !== false;                 //是否自动开始
+        self.workerThread = ops.workerThread || 1;      //工作线程
+        self.timeout = ops.timeout;                     //超时时间(毫秒)
+
+        self.id = 0;
 
         if (ops.rtype == "auto") self.rtype = getType(tasks);
 
@@ -1524,6 +1603,7 @@
 
             self.tasks = [];
             self.index = 0;
+            self.id = 0;
 
             self.workerIdle = self.workerThread;
 
@@ -1532,14 +1612,42 @@
 
         //添加任务
         _add: function (args, key, auto) {
-            var self = this;
+            var self = this,
+                tasks = self.tasks,
+                count = self.count,
+                is_add = true;
 
-            var task = { args: makeArray(args), state: QUEUE_TASK_READY };
+            var task = { id: ++self.id, args: makeArray(args), state: QUEUE_TASK_READY };
+
             if (key != undefined) task.key = key;
 
-            self.tasks.push(task);
+            if (tasks.length >= count) {
+                if (self.index) {
+                    tasks = tasks.slice(self.index);
+                    self.index = 0;
+                }
 
-            self.trigger("add", task);
+                if (tasks.length >= count) {
+                    var is_dropped = self.limitMode == 2, dropped_tasks;
+
+                    if (is_dropped) {
+                        dropped_tasks = tasks.slice(0, tasks.length - count + 1);
+                        tasks = tasks.slice(-count + 1);
+                        self.index = 0;
+                    } else {
+                        is_add = false;
+                    }
+
+                    self.trigger("limit", is_dropped ? dropped_tasks : task);
+                }
+
+                self.tasks = tasks;
+            }
+
+            if (is_add) {
+                tasks.push(task);
+                self.trigger("add", task);
+            }
 
             if (auto) self.start();
 
@@ -1580,7 +1688,7 @@
         _run: function () {
             var self = this;
 
-            if (self.stoped || self.workerIdle <= 0 || self.index >= self.tasks.length) return self;
+            if (self.stopped || self.workerIdle <= 0 || self.index >= self.tasks.length) return self;
 
             var task = self.tasks[self.index++],
                 timeout = self.timeout;
@@ -1608,7 +1716,7 @@
         //启动队列,默认延迟10ms
         start: function () {
             var self = this;
-            self.stoped = false;
+            self.stopped = false;
             if (!self.auto) self.auto = true;
 
             delay(self._run, self, 10);
@@ -1620,7 +1728,7 @@
         //time:可选,暂停的毫秒数
         stop: function (time) {
             var self = this;
-            self.stoped = true;
+            self.stopped = true;
 
             if (isUInt(time)) delay(self.start, self, time);
 
@@ -1635,7 +1743,7 @@
                 injectIndex = ops.injectIndex || 0,     //执行函数中回调函数所在参数索引
                 injectCallback = ops.injectCallback,    //如果该参数是一个对象,需指定参数名称,可选
 
-                args = task.args.slice(0);
+                args = (task.args || []).slice(0);
 
             //自执行函数
             if (!ops.exec && isFunc(args[0])) injectIndex++;
@@ -1686,6 +1794,8 @@
                 args = self.inject(task, callback),
                 fn = args[0];
 
+            if (!fn) return;
+
             if (fn instanceof Queue) fn.start();
             else if (exec) exec.apply(bind, args);
             else fn.apply(bind, args.slice(1));
@@ -1726,7 +1836,7 @@
             //触发任务完成事件
             self.trigger("end", task);
 
-            if (self.stoped) {
+            if (self.stopped) {
                 //任务已停止且完成时触发任务停止事件
                 if (self.isCompleted(self.tasks.slice(0, self.index))) self.trigger("stop", self.processResult(self.tasks));
             } else {
@@ -1772,12 +1882,14 @@
         return series(tasks, complete, ops, isArrayLike(tasks) ? tasks.length : Object.size(tasks));
     }
 
+    var jslib = (Q.G || {}).$ || {};
+
     //ajax队列
     function ajaxQueue(ops) {
         ops = ops || {};
 
         return new Queue(extend(ops, {
-            exec: ops.ajax || Q.ajax || $.ajax,
+            exec: ops.ajax || Q.ajax || Q.http || jslib.ajax,
             injectIndex: 1,
             injectCallback: "complete"
         }));

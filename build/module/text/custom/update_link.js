@@ -17,7 +17,7 @@ var global = Q.G,
     map_all = {};
 
 module.exports = {
-    type: "update_link",
+    type: ["update_link"],
 
     init: function (data, task) {
         //允许外部配置匹配规则

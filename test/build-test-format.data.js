@@ -1,10 +1,12 @@
 ﻿module.exports = {
-    dir: "../demo",
-    output: "../release",
+    root: "../",
+    dir: "demo",
+    output: "release",
 
     format: [
         {
             title: "格式化html文件",
+            //autoSkip: false,
 
             match: "*.html",
             exclude: "**.old.html",
@@ -34,5 +36,67 @@
                 [/^\s+|\s+$/, ""]
             ]
         }
-    ]
+    ],
+    copy: [
+        {
+            title: "同步js/boot.js",
+            autoSkip: false,
+            match: ["js/boot.js"]
+        }
+    ],
+    format1: [
+        {
+            title: "html文件url添加打包时间",
+            dir: "/release",
+            output: "/release",
+            autoSkip: false,
+
+            match: ["*.html"],
+            exclude: "**.old.html",
+
+            replace: [
+                //移除上次附加的url参数
+                [/<(script|link|img)[^>]+?(src|href)=(['"])([^>]+?)\3[^>]*>/ig, { match: 4, pattern: /(\?|&)t=[^&"'>]*/g, value: "" }]
+            ],
+
+            join_url: [
+                //附加url参数 eg: t=1563269131930
+                [/<(script|link|img)[^>]+?(src|href)=(['"])([^>]+?)\3[^>]*>/ig, 4, 't=%START_TICK%']
+            ]
+        },
+        {
+            title: "css文件url添加打包时间",
+            dir: "/release",
+            output: "/release",
+            autoSkip: false,
+
+            match: ["css/*.css"],
+            exclude: "**.old.css",
+
+            replace: [
+                //移除上次附加的url参数
+                [/url\(([^)]+)\)/ig, { match: 1, pattern: /(\?|&)t=[^&"'>]*/g, value: "" }]
+            ],
+
+            join_url: [
+                //附加url参数 eg: t=1563269131930
+                [/url\(([^)]+)\)/ig, 1, 't=%START_TICK%']
+            ]
+        },
+        {
+            title: "js/boot.js文件替换打包时间",
+            dir: "/release",
+            output: "/release",
+            autoSkip: false,
+
+            match: ["js/boot.js"],
+            exclude: "**.old.js",
+
+            replace: [
+                [/QBUILD_RUN\(([^)]+)\)/ig, 1]
+            ]
+        }
+    ],
+
+    run: ["format", "copy", "format1"]
 };

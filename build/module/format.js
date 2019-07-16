@@ -8,7 +8,7 @@ var log = Qbuild.log,
     print = Qbuild.print;
 
 module.exports = {
-    type: ["format", "format0", "format1"],
+    type: "format",
 
     exec: function (f, task, callback) {
         if (f.skip) {

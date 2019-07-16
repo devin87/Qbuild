@@ -21,7 +21,7 @@ function writeInfo(fullname, isOk, next, errMsg, changed) {
 };
 
 module.exports = {
-    type: ["concat", "concat0", "concat1"],
+    type: "concat",
 
     dirInfo: false,
 

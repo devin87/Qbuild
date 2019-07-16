@@ -46,7 +46,7 @@ global.window = { document: document };
 global.document = document;
 
 module.exports = {
-    type: "include",
+    type: ["include"],
 
     init: function (data, task) {
         list_include = [];
