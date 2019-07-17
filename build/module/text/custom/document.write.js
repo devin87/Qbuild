@@ -2,7 +2,7 @@
 /*
 * document.write.js 文本模块: document.write 输出支持
 * author:devin87@qq.com
-* update:2017/12/25 15:44
+* update:2019/07/17 11:15
 */
 var global = Q.G,
 
@@ -13,17 +13,15 @@ var global = Q.G,
 
     map_mtime = store.get(KEY_STORE) || {},
 
-    list_include = [],
     map_include = {},
-    fullname = "",
 
     has_changed = false;
 
 //获取引用对象
-function get_include_obj(dir, pathname) {
+function get_include_obj(task, dir, pathname) {
     var key = path.join(dir, pathname).toLowerCase();
 
-    return map_include[key];
+    return (task.map_include || map_include)[key];
 }
 
 //实现 document.write 接口
@@ -49,14 +47,11 @@ module.exports = {
     type: ["include"],
 
     init: function (data, task) {
-        list_include = [];
-        map_include = {};
-        fullname = "";
-
         if (!data) return;
 
-        list_include = Qbuild.getFiles(data);
-        list_include.forEach(function (f) {
+        task.map_include = map_include = {};
+
+        Qbuild.getFiles(data).forEach(function (f) {
             fullname = f.fullname;
             if (fs.existsSync(fullname)) require(fullname);
         });
@@ -85,12 +80,12 @@ module.exports = {
     },
 
     process: function (f, data, task) {
-        if (!f.text) return;
+        if (!data || !f.text) return;
 
         var dir = path.dirname(f.fullname);
 
         f.text = f.text.replace(RE_TAG_SCRIPT, function (m, m1, m2) {
-            var t = get_include_obj(dir, m2);
+            var t = get_include_obj(task, dir, m2);
 
             return t ? t.html : m;
         });

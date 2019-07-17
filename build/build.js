@@ -2,7 +2,7 @@
 /*
 * 文件合并、压缩、格式化工具 https://github.com/devin87/Qbuild
 * author:devin87@qq.com
-* update:2019/07/16 16:47
+* update:2019/07/17 11:17
 */
 (function () {
     "use strict";
@@ -551,7 +551,7 @@
 
         if (isObject(data)) {
             Object.forEach(data, function (type, src) {
-                load_module(type, src, bind);
+                load_module([type], src, bind);
             });
         } else {
             makeArray(data).forEach(function (src) {
@@ -583,7 +583,7 @@
             list_run = config.runText;
             if (task._map_text) list_run = list_run.concat(Object.keys(task._map_text));
         }
-        
+
         var list = [],
             map_run = list_run.toMap(true),
             tmp = [],
@@ -625,7 +625,7 @@
             list_run = task.runText,
             len = list_run.length,
             i = 0;
-        
+
         for (; i < len; i++) {
             var type = list_run[i],
                 module = map[type] || map_text_module[type];
@@ -832,12 +832,12 @@
         load_text_modules(config.registerText || path.join(ROOT_EXEC, "./module/text/*.js"));
 
         var list_run = config.run ? makeArray(config.run) : Object.keys(map_module);
-        
+
         config.run = list_run;
         config.runText = config.runText ? makeArray(config.runText).filter(function (type) {
             return map_text_module[type];
         }) : ["replace", "before", "after", "*"];
-        
+
         var queue = new Queue({
             //注入参数索引(exec回调函数所在位置,即process_task回调函数所在位置)
             injectIndex: 1,
