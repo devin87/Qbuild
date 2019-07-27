@@ -2,7 +2,7 @@
 /*
 * document.write.js 文本模块: document.write 输出支持
 * author:devin87@qq.com
-* update:2019/07/17 11:15
+* update:2019/07/27 15:12
 */
 var global = Q.G,
 
@@ -69,7 +69,7 @@ module.exports = {
 
                 var dir = path.dirname(f.fullname), t;
                 while ((ms = RE_TAG_SCRIPT.exec(f.text))) {
-                    t = get_include_obj(dir, ms[2]);
+                    t = get_include_obj(task, dir, ms[2]);
 
                     if (t && t.changed) return true;
                 }
