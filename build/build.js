@@ -2,7 +2,7 @@
 /*
 * 文件合并、压缩、格式化工具 https://github.com/devin87/Qbuild
 * author:devin87@qq.com
-* update:2019/07/17 11:17
+* update:2020/01/07 17:35
 */
 (function () {
     "use strict";
@@ -955,6 +955,8 @@
         getDestMap: function () {
             return { map: map_dest, last: map_last_dest };
         },
+        //连接路径
+        joinPath: join_path,
         //确保文件夹存在
         mkdir: mkdir,
         //读取文件内容(f.fullname => f.text)

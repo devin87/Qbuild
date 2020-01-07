@@ -13,16 +13,15 @@
 
 ### 运行环境：
 1. 下载 [Node.js](https://nodejs.org/en/download/) 并安装
-2. 下载或安装js压缩工具，任选其一
+2. 安装js压缩工具
 
-    1> 安装uglify，在命令行下执行以下命令
+    ```npm install -g uglify-js```
+	
+3. 安装css压缩工具
 
-    ```npm install uglify-js -g```
-
-    2> 下载 [Google Closure Compiler](https://github.com/google/closure-compiler)
-    确保本机已安装 [java7+](http://www.java.com/zh_CN/download/manual.jsp)，
-    [点此下载最新版](http://dl.google.com/closure-compiler/compiler-latest.zip)，若无法访问Google， [点此百度盘下载](https://pan.baidu.com/s/1cazLX8)。解压至任意文件夹，然后在 build.data.js 配置文件指定 compiler.jar 的路径
-3. 在命令行下执行（Windows 可直接运行 build.bat ），注意build文件夹路径
+    ```npm install -g clean-css-cli```
+	
+4. 在命令行下执行（Windows 可直接运行 build.bat ），注意build文件夹路径
 
     ```node build/build.js```
     
@@ -177,7 +176,7 @@ module.exports = {
         },
         {
             title: "格式化css文件",
-            //enable: false,
+            enable: false,
 
             dir: "css",
             match: "*.css",
@@ -234,7 +233,25 @@ module.exports = {
         }
     ],
 
+    //任务:增量文件同步(复制)
+    diffcopy: [
+        {
+            title: "复制变动的文件",
+            //源目录
+            dir: "www",
+            //要比较的目录
+            diffdir: "www.old",
+            //输出目录
+            output: "/temp",
+            //比较模式 mtime|md5|sha1|sha256|sha384|sha512
+            //在文件大小相同的情况下,会根据diffmode进一步比较文件修改时间或md5等值
+            diffmode: "md5",
+            match: "**",
+            exclude: "old/**"
+        }
+    ],
+
     //要启动的任务,按顺序执行,不支持*
-    run: ["concat", "format", "cmd", "copy"]
+    run: ["concat", "format", "cmd", "copy", "diffcopy"]
 };
 `````
