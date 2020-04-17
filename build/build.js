@@ -2,7 +2,7 @@
 /*
 * 文件合并、压缩、格式化工具 https://github.com/devin87/Qbuild
 * author:devin87@qq.com
-* update:2020/01/07 17:35
+* update:2020/04/17 11:41
 */
 (function () {
     "use strict";
@@ -185,12 +185,13 @@
 
     //获取匹配的文件,默认基于config.root
     //pattern:匹配规则,支持数组 eg:["js/**.js","m/js/**.js"]
-    //ops:可指定扫描目录、输出目录、排除规则、扫描时是否跳过输出目录 eg:{ dir:"demo/",output:"release/",dest:"release/%f.filename%",exclude:"**.old.js",skipOutput:true,matchOptimize:true }
-    function get_matched_files(pattern, ops) {
+    //settings:可指定扫描目录、输出目录、排除规则、扫描时是否跳过输出目录 eg:{ dir:"demo/",output:"release/",dest:"release/%f.filename%",exclude:"**.old.js",skipOutput:true,matchOptimize:true }
+    function get_matched_files(pattern, settings) {
+        var ops = {};
         if (isObject(pattern)) {
-            ops = pattern;
+            extend(ops, pattern);
         } else {
-            ops = ops || {};
+            extend(ops, settings);
             ops.match = pattern;
         }
 

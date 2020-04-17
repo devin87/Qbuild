@@ -2,7 +2,7 @@
 /*
 * document.write.js 文本模块: document.write 输出支持
 * author:devin87@qq.com
-* update:2019/07/27 15:12
+* update:2020/04/17 11:31
 */
 var global = Q.G,
 
@@ -14,6 +14,7 @@ var global = Q.G,
     map_mtime = store.get(KEY_STORE) || {},
 
     map_include = {},
+    fullname,
 
     has_changed = false;
 
@@ -51,7 +52,7 @@ module.exports = {
 
         task.map_include = map_include = {};
 
-        Qbuild.getFiles(data).forEach(function (f) {
+        Qbuild.getFiles(data, task).forEach(function (f) {
             fullname = f.fullname;
             if (fs.existsSync(fullname)) require(fullname);
         });
